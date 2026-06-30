@@ -1,0 +1,15 @@
+# 의존성 (엄청 크고, npm install로 다시 받으면 됨 → 깃에 안 올림!)
+node_modules/
+
+# 빌드 결과물
+dist/
+build/
+
+# 환경변수 (비밀값)
+.env
+.env.local
+
+# OS / 에디터
+.DS_Store
+*.log
+.vscode/
