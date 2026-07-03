@@ -629,3 +629,598 @@ const Article = () => (
 - [ ] 즉시 실행 = 괄호() 유무뿐
 - [ ] setState 핸들러 OK / 무한루프는 괄호() 탓
 - [ ] onMouseEnter=호버 / 합성이벤트=통일된 이벤트객체
+
+## 48강. State (상태)
+
+### State란?
+
+- state = 컴포넌트의 "현재 상태(모양/형편)" + 변할 수 있는 동적 값
+- 컴포넌트는 state 값에 따라 다른 UI 렌더링
+- state 바뀌면 → React가 감지 → 자동 리렌더링
+- 한 컴포넌트에 state 여러 개? : 한 컴포넌트에 여러 state 가능 (isLighton , isBroken ...)
+
+### ⭐ 왜 일반 변수 말고 state? (세션 11 복습)
+
+- let light = "OFF" 안 되는 이유 2개:
+  ① React는 일반 변수를 안 쳐다봄 → 바꿔도 리렌더링 안 함 → 화면 그대로
+  ② 리렌더돼도 let light = "OFF" 가 다시 실행됨 → "OFF"로 리셋
+- state는: setLight로 바꾸면 → ① React가 리렌더 ② 주머니에 저장돼 유지
+
+### 🖐️ 실험: 일반 변수로 해보면 (콘솔 O, 화면 X)
+
+    let light = "OFF";
+    const onClick = () => {
+      light = light === "ON" ? "OFF" : "ON";
+      console.log("light는 지금:", light);
+    };
+    // <h1>전구: {light}</h1>
+
+- 결과: 클릭하면 콘솔의 light는 OFF <-> ON "바뀜" (값은 안변함) / 화면 : "전구 : OFF"는 "그대로"
+- 이유: 변수값은 바뀌는데 React가 리렌더를 안해서 화면 반영 X (+ 리렌더 되도 리셋)
+- → 그래서 state(useState)가 필요!
+
+### useState
+
+- const [light, setLight] = useState("OFF");
+  - useState = 함수, 무엇을 돌려줌? → [현재값, 바꾸는 함수] 배열을 돌려줌
+  - 배열 구조분해(10번)로 받음 → light= 현재값, setLight= setter
+  - "OFF" = 초기값 (첫 렌더 한 번만 ! 안줘도 됨 -> undefined 로 시작)
+
+### setLight(setter)의 두 가지 일
+
+- ① state 값 바꾸기 ② React에게 "다시 그려!" 알리기
+
+### 🌉 state = React \_\_\_에 저장 (클로저 원리, 13번)
+
+- React가 state를 "주머니(slot)"에 저장 → 리렌더 때마다 꺼내줌
+- 그래서 일반 변수는 매 렌더 리셋, / state는 유지
+- 초기값은 첫 렌더만, 이후엔 주머니의 저장값 사용
+
+### getter / setter
+
+- getter = 값 읽기 / setter = 값 설정(쓰기)
+- useState 두 번째(setLight) = state를 "설정/변경"하는 함수 = setter
+
+### 🎯 전구 토글 로직 (직접 짜보기!)
+
+    import { useState } from "react";
+    function App() {
+      const [light, setLight] = useState("OFF");
+      return (
+        <div>
+          <h1>전구: {light}</h1>
+          <button onClick={() => setLight( light === "ON" ? "OFF" : "ON")}>
+            {light === "ON" ? "끄기" : "켜기"}
+          </button>
+        </div>
+      );
+    }
+
+- useSate + 배열구조분해(10번) / onClick 함수 자체(47강 , 괄호 없이) / 삼항(45강) / {light} JSX(45강)
+- 일반 변수 버전(콘솔만 바뀜) 과 달리 -> 화면이 진짜 ON <-> OFF 바뀜!
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. 왜 let light로 바꾸면 화면이 안 바뀌어?
+  → A. ① React 가 일반 변수를 안 쳐다봄 (리렌더 X) ② 리렌더돼도 let이 다시 실행되 리셋 (콘솔엔 값 바뀌어도 화면 X ) . state 는 setLight로 리렌더 + 주머니 저장
+- Q. 리렌더 = 뭐야?
+  → A. 컴포넌트 함수를 처음부터 재실행. 그래서 let 변수는 리셋 . state는 주머니에서 유지
+- Q. useState 초기값 안 주면 안 돼?
+  → A. 안 줘도 됨 ! 첫 값 undefined로 시작(에러 X ) 초기값은 첫 렌더 한 번만 , 이후엔 주머니 저장값
+- Q. setter가 뭐야? DOM에서 본 거랑 같아?
+  → A. setter = 값 설정(쓰기) useState 두 번째 (setLight) = state 설정 함수 = setter . DOM textContent = 도 쓰기 = setter 같은 개념 (값 설정)
+- Q. 클로저랑 state 관계?
+  → A. React가 state를 주머니에 저장하는 게 클로저 원리 13번과 같음 그래서 리렌더 때도 값 유지
+
+---
+
+## ✅ 48강 체크리스트
+
+- [ ] state = 컴포넌트 현재 상태 + 동적 값
+- [ ] state 바뀌면 React 자동 리렌더링
+- [ ] 일반 변수 X 이유 2개
+- [ ] 실험: 일반 변수 → 콘솔 바뀜 / 화면 안 바뀜
+- [ ] const [light, setLight] = useState(...) = 배열 구조분해
+- [ ] setLight = ①값 바꾸기 ②React에 알리기
+- [ ] 초기값 = 첫 렌더만 / 이후 주머니 저장값
+- [ ] state 유지 = React 주머니(클로저 원리)
+- [ ] setter = 값 설정 함수
+- [ ] 토글 로직: onClick 함수자체 + 삼항 + {light}
+
+## 49강. State를 Props로 전달하기 (+ 컴포넌트 분리)
+
+### State를 props로 전달 (구조 A)
+
+- 부모(App)가 가진 state를 자식에게 props로 내려줌
+  function App() {
+  const [light, setLight] = useState("OFF");
+  return <Bulb light={light} setLight={setLight} />;
+  }
+- 자식(Bulb)은 props 로 받아 UI 렌더 → 부모 state 바뀌면 자식도 UI도 바뀜
+
+### ⭐ 리렌더링 발생 3가지 원인
+
+1. 자신이 관리하는 state 값이 변경될 때
+2. 자신이 받는 props 값이 변경될 때
+3. 부모 컴포넌트가 리렌더되면 → 자식 컴포넌트도 리렌더된다
+
+### 문제: 관련 없는 state를 한 곳(App)에 두면
+
+- count 클릭 → App state가 변경 → App 리렌더 → 자식(Bulb) 전부 리렌더
+  → light 상관없는데 Bulb도 무의미하게 리렌더 → 성능 저하 !
+
+### 해결: 컴포넌트 분리 (구조 B - 지금 내 코드!)
+
+    function App() {
+      return (<><Bulb /><Counter /></>);
+    }
+
+- count 눌러도 Counter만 리렌더 → App 안 리렌더 → Bulb 안 건드림!
+- 원칙: 관련 없는 state는 몰아넣지 말고 컴포넌트로 분리
+
+### ⭐ 부모-자식 관계 ≠ 모듈화 (파일 분리)
+
+- 부모-자식 = "누가 자식<Bulb/>를 렌더하나 로 정해짐" (App이 <Bulb/> 렌더 → App= 부모 컴포넌트 , Bulb = 자식 컴포넌트 )
+- ① Bulb를 App.jsx "안에" 정의 vs ② 별도 파일 import → 결과 (같음)
+  이유: ① Bulb를 App.jsx "안에" 정의하고 App이 <Bulb/> 렌더
+  ② Bulb를 별도 파일로 만들어 import하고 App이 <Bulb/> 렌더
+- 모듈화(파일 분리) = 코드 정리용 (재사용·가독성·유지보수). 관계·동작 안 바뀜.
+
+### App(최상위) & props 근원
+
+- App(최상위)은 props를 "안 받음" state를 직접 만듦 (위에 부모가 없으니까)
+- props 바뀌는 근원 = 결국 어딘가의 state 변경 (동적 변화의 뿌리 = state)
+
+### 참고: JSX 안 주석
+
+- JSX(return의 <>...</>) 안에서는 // 주석 안 됨! → {/_ 주석 _/} 써야 함
+
+---
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. 콘솔 OFF 이후 값은 기억하는 state 값(클로저)?
+  → A. 맞음 ! OFF = 첫 렌더 초기값 , 이후는 React 주머니에 저장된 state 값 (클로저 13번)
+- Q. count 눌렀는데 Bulb console.log 찍힘 = 부모 리렌더 → 자식?
+  → A. 구조 A (둘 다 App에) 면 맞음. 구조 B (분리)면 App 리렌더 안 해서 Bulb 안 찍힘
+- Q. App이 Bulb 부모? 모듈화 안 해서 헷갈리나?
+  → A. App이 <Bulb/> 렌더하니 App = 부모 . 모듈화 (파일 분리) 는 관계 무관 , 파일만 나눔
+- Q. Bulb를 App 안에 두든 별도 파일 import하든 결과 같아?
+  → A. 같음 ! 부모-자식은 "렌더하냐" 로 정해짐 , 파일 위치 무관
+- Q. props 변경 = state 변경?
+  → A. 거의 . Props 변경의 근원은 결국 어딘가의 state 변경
+- Q. Bulb props light와 App state light 같아?
+  → A. 구조 A(내려줬으면) = 같은 값 / 구조 B (지금) = 별개 , props 없음
+- Q. App에 light state 없으면 props 받아와야? App 최상위인데?
+  → A. App 은 props 안 받음 , sate를 직접 만듦 light 내리려면 App 이 light state 가져야
+- Q. 지금 Bulb/Counter는 props 받는 상황 아니지?
+  → A. 맞음! 각자 state, props 안 받음
+
+---
+
+## ✅ 49강 체크리스트
+
+- [ ] state를 props로 자식에 내릴 수 있다
+- [ ] 리렌더 3원인: ①내 state ②받는 props ③부모 리렌더
+- [ ] 관련없는 state 한 곳에 → 무관한 자식도 리렌더
+- [ ] 해결 = state를 컴포넌트로 분리
+- [ ] 부모-자식 = 누가 렌더하냐 (모듈화/파일위치 무관)
+- [ ] App(최상위) = props 안 받음, state 직접
+- [ ] props 변경 근원 = 어딘가의 state 변경
+- [ ] JSX 안 주석 = {/\* \*/}
+
+## 50강. 사용자 입력 (제어 컴포넌트)
+
+### ⭐ 제어 컴포넌트 (Controlled Component) - 공식 용어 , 실무 표준!
+
+- 패턴: <input value={state} onChange={onChange} />
+- input의 값을 React가 "제어" → 값이 항상 state를 따라감
+- 순환: 타이핑 → onChange 발생 → setState(입력값) → state 갱신 → value = {state} 반영 → 화면
+
+### setState(e.target.value) 로직
+
+1. 사용자가 타이핑 → onChange 이벤트 발생
+2. React가 onChange(e) 호출 (e=합성이벤트 , 47강)
+3. e.target.value = 지금 input에 입력한 값
+4. setState(e.target.value) → 그 값을 state에 저장 + 리렌더 (48강 setter)
+5. value={state}가 새 값 반영
+
+- 핵심: setState(값)=인수 준 값을 state에 저장. 입력값(e.target.value)을 넣으니 입력값이 저장됨.
+
+### e.target.value 구조 (객체 안 객체)
+
+- e = 이벤트 객체 (합성이벤트) / e.target = 이벤트 안 요소(이 input) <- 이것도 객체 ! / e.target.value = 그 input의 입력값 <- 문자열
+
+### input 종류 (type)
+
+- text= 기본 글자/ password= (●●● 가림) / number= 숫자 / date= 달력 / checkbox= 다중 선택 / radio= 택 1
+
+### input 속성
+
+- value= 값 , React에선 state로 제어 / placeholder= 빈칸 안내문구 / disabled= 잠금 / type
+
+### ⭐ checkbox vs radio
+
+- checkbox = 여러 개 독립 선택 (다중)
+- radio = (하나만 택 1), 단 같은 name으로 묶어야 택 1 됨 ! (name 없으면 다 따로 놀아 다중 선택됨 )
+
+### label + for (연결)
+
+- <label for="email">이메일</label> <input id="email" />
+- label의 for = input의 id → 연결. 글자 클릭 → input에 포커스 (클릭영역↑, 접근성)
+- React(JSX)선 for 대신 htmlFor ! (for는 JS 예약어)
+- 감싸는 방법도 됨 : <label>글자 <input/></label>
+
+### 그 외
+
+- select/option: 드롭다운. option = value (저장값) + 텍스트 (화면) => 서로 다르게 가능
+- textarea: 여러 줄 입력
+- 제어 select 주의: value={state} 의 초기값이 option 중 하나와 맞아야 함
+  (예 : country 초기값 "한국"인데 option이 kr/us/uk면 안 맞음 -> ""로 ! )
+
+### 제어 vs 비제어
+
+- 제어: value={state}+onChange, 값이 state에. 실시간 검증·제어 쉬움. (실무 대부분)
+- 비제어: value 안 줌, input이 스스로 관리 , 필요할 때 ref로 읽음 (useRef, 52강)
+
+---
+
+### 🔄 제어 컴포넌트 전체 흐름 (한 번에)
+
+    const [state, setState] = useState("");
+    <input value={state} onChange={onChange} />
+
+- useState는 "객체"가 아니라 "배열"를 돌려줌 → 배열 구조분해로 받음
+  - 첫 요소(state) = 현재 값 (처음=초기값, 이후= 주머니 저장값)
+  - 둘째 요소(setState) = 값 저장(변경) + 리렌더 (setter, 48강)
+
+- 흐름 5단계:
+  1. 사용자 타이핑
+  2. onChange 이벤트 발생 → onChange(e) 실행
+  3. e.target.value = 입력값
+  4. setState(e.target.value) → 입력값을 주머니 (state)에 저장 + 리렌더
+  5. 리렌더 → value={state}가 새 값을 반영 → 화면 (다시 타이핑하면 2번 반복)
+
+- 배역 정리 :
+  - value={state} → 화면에 보이는 값 = 현재 state (주머니에서 꺼낸 값 )
+  - onChange → 입력 감지해서 setState 호출
+  - setState(입력값) → 주머니에 저장(48강) + 리렌더
+  - 주머니(클로저 , 13번) → 리렌더돼도 값 유지
+
+- ⚠️ 렌더 트리거 = "setState 호출(입력할 때마다)". e.target.value 자체가 부르는 게 아님
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. setState(e.target.value)가 왜 state를 보관해?
+  → A. setState(값) = 인수 준 값을 state에 저장 (48강 setter) e.target.value(입력값)을 넣으니 입력값이 저장됨
+- Q. e.target.value에서 target도 객체야?
+  → A. 맞음 ! e(객체) -> target (input 요소 , 객체 ) -> value (입력값 , 문자열 )
+- Q. onChange 흐름 맞아?
+  → A. 맞음 (47강 이벤트 흐름) e(객체) -> target (input요소 , 객체 ) -> value(입력값 , 문자열)
+- Q. placeholder={"이름"} vs "이름" 같아?
+  → A. 같음(46강, 문자열은 ""도 {""}도).
+- Q. date input엔 왜 placeholder 안 보여?
+  → A. type=date는 placeholder 무시(달력이라).
+- Q. 제어 컴포넌트가 실무 용어야?
+  → A.응! Controlled Component=공식 React 용어, 실무 표준.
+
+---
+
+## ✅ 50강 체크리스트
+
+- [ ] 제어 컴포넌트 = value={state} + onChange
+- [ ] 순환: 타이핑→onChange→setState→state→value
+- [ ] setState(값)=인수 값을 state에 저장
+- [ ] e.target.value = e→target(input)→value
+- [ ] input type: text/password/number/date/checkbox/radio
+- [ ] checkbox=다중 / radio=택1(name으로 묶기)
+- [ ] label for=input id (React선 htmlFor)
+- [ ] select option=value+텍스트, 초기값 맞춰야
+- [ ] 제어 vs 비제어(useRef)
+- [ ] 제어 컴포넌트 = value={state} + onChange
+- [ ] 순환: 타이핑→onChange→setState→state→value
+- [ ] setState(값)=인수 값을 state에 저장
+- [ ] e.target.value = e→target(input)→value
+- [ ] input type: text/password/number/date/checkbox/radio
+- [ ] checkbox=다중 / radio=택1(name으로 묶기)
+- [ ] label for=input id (React선 htmlFor)
+- [ ] select option=value+텍스트, 초기값 맞춰야
+- [ ] 제어 vs 비제어(useRef)
+
+## 📚 input 종류 & 폼 요소 (HTML 기초 ↔ React)
+
+> HTML input이 바탕, React는 여기에 value={state}+onChange 얹어 제어 컴포넌트로.
+
+### 1. input type
+
+- text = 일반 글자 (기본) / password 입력값 ●●● 로 가림 / number = 숫자만 / email = 이메일 형식
+- date = 날짜 선택기 (달력) (※ placeholder 안 보임)
+- checkbox = 체크박스 (다중 선택) / radio = 라디오 (택1) / file = 파일 업로드
+
+### 2. input 속성
+
+- value = 값 (React선 state로 제어) / placeholder = 빈칸 안내 문구 ("" 든 {""} 든 OK ) / disabled = 입력 잠금 (회색) / type = 위 종류
+
+### 3. ⭐ checkbox vs radio
+
+- checkbox = 여러 개 독립 선택 (다중) 안 묶음
+- radio = (택1), 단 같은 name으로 묶어야! 택 1 !
+  (name 없거나 다르면? -> 따로 놀아서 다중 선택됨. name = 한 그룹)
+
+### 4. ⭐ label + input 연결 (2가지 , 둘 다 됨 )
+
+- 방법①(감싸기): <label><input/>사과</label> → for/id (불필요 ! 감싸면 자동 연결 )
+- 방법②(for/id): <label htmlFor="apple">사과</label><input id="apple"/> → 언제? : lable 태그안에 input 태그가 들어있지 않을 때
+- 효과: label 클릭 → input에 포커스( 체크 토글 ) 클릭영역↑, 접근성↑
+- React선 for → htmlFor ! (for 는 JS 예약어 ) / id는 그대로 id
+- 감쌌으면 for/id 추가는 (불필요)
+
+### 5. select / option (드롭 다운)
+
+- <option>은 <select> 안에 담겨 → (자동 묶임 radio처럼 name으로 안 묶어도 됨! )
+- option = value (저장값) + 텍슽트 (화면) -> 서로 다르게 가능
+  <option value="ko">한국</option>   // ko 저장, 한국 표시
+- select name = 폼 제출용 (React선 거의 X)
+- select id = lable 연결용 (선택)
+- 제어 select: value={state}+onChange, 초기값이 option 중 하나와 맞아야
+
+### 6. textarea = 여러 줄 입력 (자기소개 등)
+
+---
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. label 그냥 감싸면 연결 안 되고 for/id 해야 돼?
+  → A. 아님! 감싸기만으로 연결됨. for/id는 떨어져 있을 때
+- Q. radio 두 그룹인데 name 다 "gender"면?
+  → A. 4개가 한 그룹 됨(택 1) . 그룹 나누려면 name 다르게 (gender1 / gender2)
+- Q. select의 name = 옵션 묶는 거야?
+  → A. 아님 ! option은 select 안에 담겨 자동 묶음. select name 은 폼 제출용
+- Q. select의 id는?
+  → A. lable 연결용 (선택) 옵션 그룹핑이랑 무관
+- Q. name="" id="" 는 왜 떠?
+  → A. IDE 자동완성. 빈 값이라 안 쓰면 지워도 됨
+
+---
+
+## ✅ input 종류 체크리스트
+
+- [ ] input type: text/password/number/email/date/checkbox/radio/file
+- [ ] 속성: value/placeholder/disabled/type
+- [ ] checkbox=다중 / radio=택1(같은 name)
+- [ ] label 연결 2가지: 감싸기(for/id 불필요) / for-id. React선 htmlFor
+- [ ] select: option 자동 묶임, option=value+텍스트
+- [ ] textarea=여러 줄
+
+## 51강. State 객체 통합 + 통합 이벤트 핸들러
+
+### 왜? (비효율 개선)
+
+- 이전: 값마다 state 따로 (name , birth , country , bio ) + 핸들러 4개
+- 문제: 핸들러들이 거의 똑같음(setXxx(e.target.value)), state도 반복 → 비효율
+- 개선: state를 객체 하나로 묶고, 핸들러도 하나로 통합
+
+### 1. State를 객체로 통합
+
+    const [input, setInput] = useState({ name:"", birth:"", country:"", bio:"" });
+
+- 초기값이 객체 → input state가 객체 (4개 값을 프로퍼티로)
+- 값 접근: input.name , input.birth ...
+
+### 2. 통합 이벤트 핸들러
+
+    const onChange = (e) => {
+      setInput({ ...input, [e.target.name]: e.target.value });
+    };
+
+- 모든 input이 이 onChange 이벤트 핸들러 하나를 씀 (onChange = {onChange})
+
+### ⭐ setInput({ ...input, [e.target.name]: e.target.value }) 뜯기
+
+- ...input = spread (12번): 현재 input 다 복사 → 안 바뀌는 필드 유지
+- [e.target.name]: value = 계산된 프로퍼티 이름 (computed property)
+- 왜 spread 필요? setInput은 state를 "통째로 변경" → 없으면 나머지 필드 사라짐 !
+  setInput({ [name]: value }) // 나머지 (3개 사라짐)
+  setInput({ ...input, [name]: value }) // (기존 유지 + 하나만 갱신)
+
+### ⭐ 계산된 프로퍼티 이름 [key] (새 문법!)
+
+- key 자리에 대괄호 [] → 안의 변수/식의 "값"을 key로 사용
+  const field = "name";
+  { [field]: "채연" } // { name : "채연" } <- field의 값이 key
+  { field: "채연" } // { field : "채연" } <- 대괄호 없으면 문자 그대로
+- [e.target.name]: e.target.name "name"이면 → name : e.target.value / "birth"면 → birth : e.target.value
+
+### name 속성
+
+- 각 input에 name="name" , name= "birth"...붙임 → e.target.name이 그걸 읽음
+- HTML name 속성 (폼 제출 때 백엔드가 보는 것과 같은 속성), 여기선 "어느 필드+state key" 용도
+- ⚠️ name 값 = state 객체의 "key"와 일치해야! (name="name" ↔ input.name)
+
+---
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. useState({}) 의 {}는 state 자체?
+  → A. 맞음 ! 초기값이 객체 -> input state가 객체
+- Q. [e.target.name]: value 문법?
+  → A. 계산된 프로퍼티 . 대괄호 안 값(e.target.name)을 key 로 씀 "name" 이면 name: value , "birth" 면 birth : value (동적 키)
+- Q. 왜 ...input 을 넣어야 해?
+  → A. setInput은 통째 교체 . spread로 기존 필드 복사 안 하면 나머지 사라짐 (12번 불변 업데이트)
+- Q. name = 백엔드가 보는 그거?
+  → A. 같은 HTML name 속성 . 여기선 어느 필드인지 구분 + state Key 용도 . name 값 = state key 와 일치해야함
+
+---
+
+## ✅ 51강 체크리스트
+
+- [ ] 여러 state → 객체 하나로 통합
+- [ ] 핸들러 하나로 통합
+- [ ] ...input = spread: 기존 유지 (12번)
+- [ ] [e.target.name] = 계산된 프로퍼티: 대괄호 안 값을 key로
+- [ ] spread 필수: setState는 통째 교체
+- [ ] name 속성 = state key와 일치
+
+## 52강. useRef
+
+### ⭐ useRef 2가지 용도
+
+    const countRef = useRef(0);   // 용도1: 리렌더 없이 값 유지
+    const inputRef = useRef();    // 용도2: DOM 요소 접근
+
+1. 리렌더 없이 값 유지: countRef.current++ → 값 바뀌어도 화면 안 그림
+2. DOM 접근: <input ref={inputRef}/> → inputRef.current = <input/>태그가 그려진 "실제 DOM 요소" 그 DOM → .focus() 등
+
+### useRef vs useState
+
+- useState: 값 유지 (O) / 리렌더 (O) / 형태 = 배열 [ 값 , setter]
+- useRef: 값 유지 (O) / 리렌더 (X) / 형태 = 객체 {current : 값}
+  → 둘 다 주머니에 유지 . 차이 = 리렌더 하냐 (state) 안 하냐 (ref)
+
+### useRef는 "객체" ({current: 값})
+
+- useRef()는 { current : 값 } 객체 반환. 값은 .current 에
+- useState 는 배열 , useRef 는 객체 ! (변수가 다 객체인것은 아님! , useRef 만 객체)
+
+### 특정 DOM = 태그가 그려진 "실제 DOM 요소"
+
+- <input ref={inputRef}/> → inputRef.current = React가 렌더 후 그 input DOM을 inputRef.current에 넣어줌
+- inputRef.current = 그 input DOM 요소 (console.log 하면 태그 출력 )
+- inputRef.current.focus() → 그 input에 커서
+
+### 리셋 안 됨 = 주머니 ( 클로저 , 13번)
+
+- useRef/useState 값은 React 주머니(slot)에 저장 → 리렌더돼도 유지 (리셋 X)
+- 일반 let count=0은 리렌더 때 재 실행되어 0으로 리셋
+
+### ⭐ 핵심 구분
+
+- useRef = ① 값 유지 (리렌더 돼도) + ② 값 바뀌어도 리렌더 안 함
+- ⚠️ useRef ≠ state 반영 ! "리렌더 안 하는 자기 값 + DOM 참조"
+
+### 인스턴스 (붕어빵)
+
+- 컴포넌트(함수) = 붕어빵 틀 / 인스턴스 = 틀로 찍어낸 붕어빵 하나하나
+- <Register/> 쓸 때마다 인스턴스 1개. <Register/><Register/> = 인스턴스 2개 (각자 독립)
+- import는 앱 시작 시 파일 1번 로드 / <Register/> 는 쓸 때마다 함수 호출
+
+### 함수 밖 변수 vs 함수 안
+
+- let count=0 (함수 밖) → 모든 인스턴스가 "공유" → 버그 (같이 카운팅)
+- useRef/useState (함수 안) → 인스턴스마다 "독립"
+- ※ let count=0 (함수 안)도 → 매 렌더 리셋 (항상 1) -> 그래서 useRef 를 사용해야 함 !
+
+### inputRef를 핸들러에서 = 클로저
+
+- 컴포넌트 스코프 선언 / onSubmit 내부 함수가 참조 = 클로저 (바깥 변수 봄 , 벽돌1)
+
+---
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. useRef는 무조건 객체 형태? → A. 맞음 ! { current : 값 } . ( useState = 배열 / useRef = 객체 )
+- Q. 특정 DOM = 태그? → A. 태그가 그려진 실제 DOM 요소
+- Q. ref={inputRef} → current에 태그 담김? → A. 맞음 ! React 가 그 DOM을 current 에 넣음
+- Q. 리셋 안 됨 = 주머니(클로저)? → A. 맞음 ! 주머니에 저장돼 유지
+- Q. useRef = 값 유지 + 렌더링만 안 함? → A. 맞음 !
+- Q. useRef = state 반영 함수? → A. 아님 ! state 와 무관 , 자기 값 보관 + DOM 참조.
+- Q. inputRef 핸들러에서 씀 = 외부변수 참고? → A. 맞음 ! 클로저
+- Q. <Register/> 2개 = 함수 2번 호출? → A. 맞음 ! import 1번 / 함수 호출 2 번 (독립 인스턴스)
+- Q. 인스턴스가 뭐야? → A. 컴포넌트(틀)로 만든 하나하나의 개체 (붕어빵)
+
+---
+
+## ✅ 52강 체크리스트
+
+- [ ] useRef 용도: ①값 유지 ②DOM 접근
+- [ ] useRef = {current:값} 객체 (useState는 배열)
+- [ ] state는 리렌더 O / ref는 X
+- [ ] <input ref={r}/> → r.current = DOM → .focus()
+- [ ] 리셋 안 됨 = 주머니(클로저)
+- [ ] useRef ≠ state 반영
+- [ ] 인스턴스 = 붕어빵 (독립)
+- [ ] 함수 밖=공유(버그) / 함수 안=독립
+- [ ] inputRef 핸들러에서 = 클로저
+
+## 53강. React Hooks + 커스텀 훅
+
+### Hooks란?
+
+- Hooks = 함수 컴포넌트에서도 React 기능(State , Ref)을 쓰게 해주는 메서드
+- 과거(2017년 이전): 클래스 컴포넌트만 기능 사용 / 함수 컴포넌트는 UI 렌더만
+- 클래스가 문법이 복잡해서 → 함수 컴포넌트에서도 기능 쓰려고 -> Hooks 개발(클래스 기능 "낚아채오기")
+- useState/useRef도 다 Hooks! 접두사 = "use". 각각을 단수형 "hook"이라부름
+- 다른 훅 : useEffect , useReducer 등
+
+### 클래스 vs 함수+hook (왜 hook이 생겼나)
+
+### 클래스 vs 함수+hook (왜 hooks가 생겼나)
+
+    // 😰 클래스 (옛날, 복잡): class, constructor, super, this.state, this.setState, render()
+    class Counter extends Component {
+      constructor(props){ super(props); this.state={count:0}; }
+      render(){ return <button onClick={()=>this.setState({count:this.state.count+1})}>{this.state.count}</button>; }
+    }
+    // 😎 함수+hook (지금, 간결):
+    function Counter(){
+      const [count, setCount] = useState(0);
+      return <button onClick={()=>setCount(count+1)}>{count}</button>;
+    }
+
+- ※ 클래스 컴포넌트는 지금 안 배워도 됨! "옛날엔 복잡했구나 → 그래서 hook" + 볼 줄만.
+
+### ⭐ Hook 규칙 (3가지)
+
+1. hook은 "함수 컴포넌트 안" / "커스텀 훅 안" 안에서만 호출 (일반 함수·클래스 X -> Invaild hook call)
+2. 조건문 / 반복문 / 중첩함수 안 ❌ → "컴포넌트 함수 최상위에서만"
+3. 나만의 훅(커스텀 훅) 만들 수 있음 (use 접두사)
+
+### ⭐ 왜 조건문/반복문 X? (호출 순서 = slot 매칭)
+
+- React는 hook을 "호출 순서(번호)"로 주머니(slot)에 매칭
+  const [a]=useState(0); // 1번째 → slot 0
+  const [b]=useState(""); // 2번째 → slot 1
+- 매 렌더 같은 순서로 불려야 제대로 매칭됨
+- 조건문 안 넣으면 : 어떤 렌더엔 안 불림 -> 순서 어긋남 -> b가 a의 slot을 받음 -> 값 뒤섞임 / 에러
+- (반영 안 됨이 아니라 "엉뚱한 주머니에 연결" 됨 ) → 항상 최상위 같은 순서로 , 같은 순서로
+
+### ⭐ 커스텀 훅 (Custom Hook)
+
+- 접두사 "use" 로 시작 + 안에서 hook 쓰는 함수 → 반복 로직 재사용
+  function useInput() {
+  const [input, setInput] = useState(""); // 초기값 "" 권장
+  const onChange = (e) => setInput(e.target.value);
+  return [input, onChange]; // 배열로 반환 (useSate 흉내)
+  }
+- src/hooks 폴더에 관리
+
+### 배열 return / 사용
+
+- return [input, onChange] → 배열도 값(8번)·함수도 값(4번)이라 배열로 감싸 반환 . index 0 =input, index 1 =onChange (0부터!)
+- const [input, onChange] = useInput() → 배열 구조분해(10번), 이름 (위치로!)
+- ⭐ 호출마다 \*\*\* state! useInput() 두 번 = 독립 state 2개 (붕어빵). input과 input2는 (진짜 다른 state input≠input2 )
+
+---
+
+### ❓ 내 질문 & 답 (직접 채우기!)
+
+- Q. 클래스 컴포넌트 예시? → A. class/constructor/this.state/this.setState/render()로 복잡. 지금은 함수+hook(간결). 볼 줄만 알면 됨.
+- Q. hook은 조건문/반복문 X, 최상위에서만? → A. 맞음 ! 컴포넌트 함수 최상위(조건·반복·중첩함수 X)
+- Q. 순서 엉키면 = 주머니 반영 안 됨? → A. 정확히는 "엉뚱한 주머니에 연결됨" 순서 = slot 매칭이라 순서 어긋나면 b가 a의 slot 받아 뒤섞임
+- Q. 어떻게 배열로 return? → A. 배열도 값·함수도 값. index 0=input, 1=onChange.
+- Q. useInput이 input2 return 안 했는데 input2 됨? → A. [input , onChange] 배열만 반환 . 구조분해는 위치로 받아 이름 자유
+- Q. input과 input2는 이름만 바꾼 거? → A. 아님 ! 두번 호출 = 독립 state 2개
+- Q. useState 구조분해 index? → A. 0 , 1 (0부터)
+
+---
+
+## ✅ 53강 체크리스트
+
+- [ ] Hooks = 함수 컴포넌트에서 React 기능 (use)
+- [ ] 클래스(복잡) vs 함수+hook(간결) — 볼 줄만
+- [ ] Hook 규칙: 최상위에서만, 조건문·반복문 X
+- [ ] 왜? 호출 순서=slot 매칭 → 어긋나면 엉뚱한 주머니
+- [ ] 커스텀 훅 = use + 안에서 hook
+- [ ] 배열 return = 배열도 값·함수도 값, index 0부터
+- [ ] 커스텀 훅 = 구조분해, 이름 자유, 호출마다 독립 state
+- [ ] useState("") 초기값
