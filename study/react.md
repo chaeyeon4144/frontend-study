@@ -1290,3 +1290,87 @@ const Article = () => (
 카페 "아메리카노요"만 하면(useCounter()) → 기본 사이즈(0)로.
 사이즈 말하면(useCounter(10)) 그 사이즈로. 사이즈는 주문에 채워지는 것,
 나한테 나오는 건 완성된 커피(return).
+
+## 섹션7. 카운터앱 — State Lifting & 단방향 데이터 흐름
+
+### 1. 컴포넌트 계층 구조
+
+- 화면 = 여러 컴포넌트가 부모-자식 관계로 층층이 쌓인 구조(트리)
+- App(부모) 아래 Viewer / Controller (형제)
+
+### 2. props는 "부모 → 자식" 으로만 흐른다
+
+- 데이터 주고받으려면 두 컴포넌트가 반드시 부모-자식 관계여야 함
+- ⭐ 형제끼리(Viewer ↔ Controller)는 직접 못 준다! (부모-자식 아니니까)
+- 오답: Viewer에 state 만들면 → Controller가 setCount 못씀 왜? => 형제라 전달 불가
+-      Controller 에 state 만들면 -> count를 Viewer 에 못 넘김 (형제라 전달 불가)
+
+### 3. ⭐ State Lifting (상태 끌어올리기)
+
+- 여러 컴포넌트가 하나의 state 공유 → state를 "공통 부모"로 끌어올려서 만든다
+- 그 아래 자식들이 props로 받아 다 같이 공유
+- 카운터: state를 App 에 두고, count→Viewer에 props , 핸들러→Controller에 props
+
+### 4. 형제끼리 "간접" 소통 원리
+
+- Controller가 count 바꾸고 싶음 → 직접 (불가능)
+- 대신: App이 핸들러를 Countroller 에 내려줌 → Controller는 그걸 "호출만"
+  → setState는 App 에서 일어남 → 새 count 다시 아래로 흐름
+  - 끝까지 위→아래 한 방향 유지! (역방향으로 밀어올리는 게 아님)
+
+### 5. ⭐ 단방향 데이터 흐름 (One-way Data Flow)
+
+- 데이터는 항상 **위(부모) → 아래(자식)** 한 방향 (props로만)
+- 일방통행 차선 같음 → 추적 쉬움 = 직관적
+- "state를 어디 둘지" 고민 → 막히면 끌어올리기 !
+
+### 6. 실전 코드 매핑
+
+    // App.jsx (state 위치 = 공통 부모)
+    const [count, onClickButton] = useCounter();
+    <Viewer count={count} />
+    <Controller onClickButton={onnClickButton} />
+
+
+    // Viewer.jsx (자식) — 보여주기만
+    const Viewer = ({ count }) => <h2>{count}</h2>;
+
+    // Controller.jsx (자식) — 핸들러 호출만
+    const Controller = ({ onClickButton }) => (
+      <button onClick={() => onClickButton(1)}>+1</button>
+    );
+
+### 💡 핵심 한 줄
+
+state는 \*\**"공통 부모" 에 둔다 → 데이터는 *위→아래 단방향.
+
+## ✅ 섹션7 카운터앱 체크리스트
+
+### 개념
+
+- [ ] 컴포넌트는 부모-자식 계층 구조(트리)를 이룬다
+- [ ] props는 "부모 → 자식" 한 방향으로만 흐른다
+- [ ] 형제끼리는 직접 데이터 못 준다 (부모-자식 아니니까)
+- [ ] 여럿이 공유할 state = "공통 부모"에 만든다 = State Lifting(끌어올리기)
+- [ ] 형제 간접 소통 = 핸들러를 아래로 내려주고 자식이 "호출만"
+- [ ] 단방향 데이터 흐름 = 위→아래 한 방향 → 추적 쉬움(직관적)
+- [ ] "state를 어디 둘지" 늘 고민, 막히면 끌어올리기
+
+### 실전 (직접 짤 수 있나?)
+
+- [ ] App(공통 부모)에서 useCounter() 한 번만 호출
+- [ ] count → Viewer 에 props로 내려주기
+- [ ] 핸들러 → Controller 에 props로 내려주기
+- [ ] 자식은 props를 객체 구조분해로 받기 `({ count })` / `({ onClickButton })`
+- [ ] 버튼에 숫자 넘기기 = 화살표 껍데기 `onClick={() => onClickButton(1)}`
+
+### 아침에 배운 거 연결 (커스텀 훅)
+
+- [ ] 훅 return 모양(배열/객체)은 내 선택, 꺼낼 때 짝 맞추기 ([]↔{})
+- [ ] 매개변수 없는 훅에 값 주면 무시됨 (괄호 자리!) → useCounter(0) vs useCounter()
+- [ ] props가 객체인 건 React 규칙 / 훅 return 모양과는 별개
+
+### 자잘 습관
+
+- [ ] 안 쓰는 import 지우기 (Viewer/Controller의 useCounter import)
+- [ ] 핸들러 이름 대소문자 통일 (onIncrease/onDecrease/onReset)
