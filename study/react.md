@@ -1224,3 +1224,69 @@ const Article = () => (
 - [ ] 배열 return = 배열도 값·함수도 값, index 0부터
 - [ ] 커스텀 훅 = 구조분해, 이름 자유, 호출마다 독립 state
 - [ ] useState("") 초기값
+
+## 💡 [헷갈렸던 개념] 커스텀 훅 심화 — 매개변수·기본값·return 모양
+
+### ⭐ 1. 괄호 자리가 "두 군데"다
+
+- 정의할 때 괄호 = "받는 자리" → function useCounter(initial = 0)
+- 부를 때 괄호 = "주는 자리" → useCounter(10)
+- 이름(initial)은 훅 "안" 에만 있음. 부를 땐 값만 넣음!
+  useState(false) // false가 초기값 자리로
+  useToggle(true) // true 가 initial 자리로
+  useCounter(10) // 10이 initial 자리로 <- 다 같은 원리 !
+
+### ⭐ 2. 기본값(= 0)은 "안 줬을 때만" 나서는 대타
+
+- useCounter() → 안 줌 → 기본값 0 사용
+- useCounter(10) → 줬음 → 10 사용 (준 게 이김!)
+- 부를 때 () 안에 넣는 값 = 시작값(초기값)으로 들어감
+
+### ⭐ 3. 값의 방향 (initial은 "들어가는" 거지 "나오는" 게 아님! )
+
+    Counter ──(인자)──▶ 훅 안 initial      들어감 (빈손이면 기본값 0이 채움)
+    훅 return ──(결과)──▶ Counter          나옴 (return한 것만 !)
+
+- initial은 훅 안 비밀재료 → 밖으로 안 나옴
+- Counter로 나오는 건 return 한 것 뿐
+
+### ⭐ 4. return 모양은 "내 맘대로" (useState 흉내 안 내도 됨)
+
+- useState가 배열인 건 React가 그렇게 만든것 . 내 커스텀 훅은 자유 !
+- 배열로 보내면 → "위치로" 꺼냄, 이름 (자유)
+  return [count , increase];
+  const [count , inc] = useCounter(); // 이름 맘대로
+
+- 객체로 보내면 → "이름으로" 꺼냄, 순서 무관, 필요한 것만
+  return {count , increase , decrease , reset};
+  const {count , increase } = useCounter(); // 이름 맞춰야 , 순서 상관없음
+- 언제 뭘: 22개면 배열 / 3개 이상·함수 여러 개면 객체
+- (세션10 구조분해: 객체=**_이름중요·순서무관 _** / 배열=**_위치중요·이름자유_**)
+
+### ⭐ 5. useState가 배열인 이유
+
+    const [count, setCount] = useState(0);
+    const [name, setName] = useState("");   // 여러 번 쓸 때 이름 다르게!
+
+- 배열이라 여러 번 쓸 때 매번 이름 자유롭게 붙임 . 객체였으면 이름 겹쳐서 매번 바꿔야함
+
+### ⭐ 6. "값"이면 어디든 들어간다
+
+- 숫자·문자·함수·객체·배열 = 전부 "값" => 변수/배열칸/return/인자 어디든 담김
+  const arr = [1, "hi", () => {}, { a: 1 }, [1, 2]];
+- 그래서 return [count, { 함수들 }] 이 됨:
+  count(숫자,값) → 0번 칸 / { 함수들 }(객체,값) → 1번 칸
+- return [count, { 함수들 }] 이 되는 이유: - 객체가 통째로 하나의 "값"이라 배열 칸에 쏙 들어감
+
+### 🔁 어제 배운 거랑 똑같음
+
+    useInitialToggle(true)  // true부터 시작
+    useCounter(10)          // 10부터 시작
+
+→ 둘 다 매개변수 기본값으로 "시작값 정하기"
+
+### ☕ 비유
+
+카페 "아메리카노요"만 하면(useCounter()) → 기본 사이즈(0)로.
+사이즈 말하면(useCounter(10)) 그 사이즈로. 사이즈는 주문에 채워지는 것,
+나한테 나오는 건 완성된 커피(return).
