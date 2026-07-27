@@ -1,8 +1,8 @@
 import Header from "./components/Header";
 import Editor from "./components/Editor";
 import List from "./components/List";
-import Exam from "./components/Exam";
-import { useState, useRef } from "react";
+// import Exam from "./components/Exam";
+import { useState, useRef, useReducer } from "react";
 import "./App.css";
 // 일단 목업 데이터
 const mockData = [
@@ -32,26 +32,38 @@ const mockData = [
   },
 ];
 
+function reducer(state, action) {
+  switch (action.type) {
+    case "CREATE":
+      return [action.data, ...state];
+    case "UPDATE":
+      return state.map((item) =>
+        item.id === action.targetId ? { ...item, isDone: !item.isDone } : item,
+      );
+    case "DELETE":
+      return state.filter((item) => item.id !== action.targetId);
+    default:
+      return state;
+  }
+}
+
 function App() {
   // const [todos, setTodos] = useState([]);
-  const [todos, setTodos] = useState(mockData);
+  const [todos, dispatch] = useReducer(reducer, mockData);
   // 고유한 id 를 저장한 레퍼런스 객체그럼
   const idRef = useRef(3);
 
   // todos 를 변경시키는 핸들러 함수
   const onCreate = (content) => {
-    const newTodo = {
-      id: idRef.current++,
-      isDone: false,
-      content: content,
-      date: new Date().getTime(),
-    };
-
-    // 객체 형태를 만들고 그다음 todos 배열에 추가해줘야한다 ㅇ
-    // 간단하게 생각했을떄 todos배열에 push 메서드로 newTodo 배열을 추가하면되지않을까 ?
-    // todos.push(newTodo)
-    // 이렇게 하면 안됨 상태변화 함수를 호출해서 수정해야만 state 변화를 감자해서 slot 주머니 저장을해서 반영을 함ㅇ
-    setTodos([newTodo, ...todos]);
+    dispatch({
+      type: "CREATE",
+      data: {
+        id: idRef.current++,
+        isDone: false,
+        content: content,
+        date: new Date().getTime(),
+      },
+    });
   };
 
   // // todos 를 수정하게하는 핸들러  함수
@@ -75,25 +87,25 @@ function App() {
 
   // 간결하게 코드를 작성ㅇ
   const onUpdate = (targetId) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === targetId ? { ...todo, isDone: !todo.isDone } : todo,
-      ),
-    );
+    dispatch({
+      type: "UPDATE",
+      targetId: targetId,
+    });
   };
 
   // todoItem을 삭제하는 핸들러 함수
   const onDelete = (targetId) => {
-    // setTods의 인수로 :
-    // todos배열에서 targetId와 일치하는 id를 갖는 요소만 삭제한 새로운 배열
-    setTodos(todos.filter((todo) => todo.id !== targetId));
+    dispatch({
+      type: "DELETE",
+      targetId: targetId,
+    });
   };
   return (
     <div className="App">
-      <Exam/>
-      {/* <Header />
+      {/* <Exam/> */}
+      <Header />
       <Editor onCreate={onCreate} />
-      <List todos={todos} onUpdate={onUpdate} onDelete={onDelete} /> */}
+      <List todos={todos} onUpdate={onUpdate} onDelete={onDelete} />
     </div>
   );
 }
