@@ -1554,11 +1554,11 @@ mount는 항상 실행되니 update만 원하면 플래그로 거른다.
 
 ### ⭐ 등장인물 3명
 
-| 이름     | 정체                       | 비유    |
-| -------- | -------------------------- | ------- |
-| dispatch | "바꿔줘" 요청만 하는 함수           | 주문서 넣기 📝  |
-| action (액션 객체)  | { type , data }               | 주문서 내용 (명세서)  |
-| reducer (state , action) | 새 state 계산해서 return (밖 함수) | 주방 / 요리사 👨‍🍳 |
+| 이름                     | 정체                               | 비유                 |
+| ------------------------ | ---------------------------------- | -------------------- |
+| dispatch                 | "바꿔줘" 요청만 하는 함수          | 주문서 넣기 📝       |
+| action (액션 객체)       | { type , data }                    | 주문서 내용 (명세서) |
+| reducer (state , action) | 새 state 계산해서 return (밖 함수) | 주방 / 요리사 👨‍🍳     |
 
 ### ⭐ 실행 흐름 4단계
 
@@ -1588,13 +1588,185 @@ mount는 항상 실행되니 update만 원하면 플래그로 거른다.
 
 ### 커스텀 훅 vs useReducer (헷갈린 것!)
 
-| | 커스텀 훅 | useReducer |
-|---|---|---|
+|      | 커스텀 훅                    | useReducer                     |
+| ---- | ---------------------------- | ------------------------------ |
 | 목적 | 로직 "재사용"(여러 컴포넌트) | 복잡한 상태 로직 "정리"(한 곳) |
-| 언제 | 같은 로직 반복될 때 | state 로직 길고 복잡할 때 |
+| 언제 | 같은 로직 반복될 때          | state 로직 길고 복잡할 때      |
+
 - 경쟁 아님! 다른 목적. 함께도 씀(커스텀 훅 안에 useReducer)
 
 ### 💡 한 줄 정리
 
 dispatch(요청) → useReducer가 reducer 호출 → reducer가 새 state return 만
 → useReducer가 저장+리렌더. reducer엔 setState 없다!
+
+## 섹션11. 최적화(Optimization)
+
+### 최적화란?
+
+- 웹 서비스의 선을을 개선하는 모든 행위 (단순 ~ 복잡 다양)
+- 일반 웹 : 서버 응답속도 , 정적파일(이미지/폰트/코드) 로딩 , 불필요한 네트워크 요청 줄이기
+- ⭐ React 고유 최적화 3가지 (React 안에서만 가능):
+  ① 불필요한 연산 방지 → useMemo
+  ② 불필요한 함수 재생성 방지 → useCallback
+  ③ 불필요한 리렌더링 방지 → React.memo
+
+### ⚠️ 최적화는 trade-off (공짜 아님!)
+
+- 재계산 줄이는 대신 → 메모리 더 씀 (값 저장) + 코드 복잡
+- "필요할 때만" 쓰기! (아무데나 바르면 오히려 손해)
+
+## 섹션11. useMemo — 불필요한 연산 방지 (메모이제이션)
+
+### 1. 개념
+
+- useMemo = 메모이제이션(memoization) 기반으로 불필요한 "연산"을 막는 React 훅
+- 메모이제이션 = "기억해두기" — 같은 연산을 반복할 때 매번 다시 계산 X,
+  최초 1번 계산한 결과값을 메모리에 저장 → 다시 필요하면 저장값 바로 돌려줌
+- 🍽️ 비유(강의): 식당에서 내가 주문한 메뉴를 매번 메뉴판 뒤져 찾지 않고
+  머릿속에 "기억(메모)"해뒀다가 바로 답함 = 메모이제이션
+
+### 2. 왜 필요? (문제 상황)
+
+- getAnalyzedData 같은 무거운 계산(filter로 전체 순회)이 있을 때
+- filter는 배열 전체를 한 번씩 순회 → todos 많아질수록 오래 걸림
+- 그냥 함수로 호출하면 → 컴포넌트 리렌더 때마다 매번 재실행!
+- ⚠️ 검색어 입력 → List 리렌더 → 이 계산 또 돎
+  (근데 검색은 수치와 무관! todo 추가/삭제도 아닌데 재계산 = 낭비)
+- → "todos 바뀔 때만" 계산하고, 검색 땐 안 하게 만들고 싶다!
+
+### 3. 예제 (통계 함수)
+
+    const totalCount = todos.length;                       // 전체 개수
+    const doneCount = todos.filter((t) => t.isDone).length; // 완료(isDone=true) 개수
+    const notDoneCount = totalCount - doneCount;           // 미완료 = 전체 - 완료
+    return { totalCount, doneCount, notDoneCount };         // 객체로 묶어 반환
+
+### 4. useMemo 사용법
+
+    const { totalCount, doneCount, notDoneCount } = useMemo(() => {
+      // 콜백 안 = 메모이제이션 하고 싶은 무거운 연산
+      const totalCount = todos.length;
+      const doneCount = todos.filter((t) => t.isDone).length;
+      const notDoneCount = totalCount - doneCount;
+      return { totalCount, doneCount, notDoneCount };   // ← return은 콜백 "안"에만!
+    }, [todos]);   // ← deps
+
+- 1번 인수 = 콜백(계산 로직) / 2번 인수 = deps(의존성 배열)
+- ⭐ useMemo는 콜백의 return값을 "그대로 반환" → 그래서 변수로 받을 수 있음
+
+### ⭐ 5. deps (핵심!)
+
+- deps 안 값이 바뀔 때만 → 콜백 재실행(재계산) / 안 바뀌면 → 저장값 재사용
+- [] = mount 때 딱 1번만 (이후 재계산 X)
+  → todos 바뀌어도 수치 안 갱신 = 버그! + "missing dependency: todos" 경고
+- [todos] = todos 바뀔 때만 재계산 ✅ (검색 땐 재계산 X = 우리가 원하는 것!)
+- 🔁 useEffect deps랑 완전히 같은 개념 (useEffect=콜백 실행 / useMemo=재계산)
+
+### 6. 확인법 (콘솔)
+
+- 콜백 안에 console.log 찍기
+- 검색어 입력 → 메시지 X (재계산 안 함 = 최적화 성공!)
+- todo 추가/삭제 → 메시지 O (todos 바뀌어 재계산)
+
+### ❓ 내가 헷갈렸던 것 (복습!)
+
+- Q. 메모이제이션의 "task"가 컴포넌트? 매개변수 같은 거?
+  → A. 아님! "그 연산(콜백)" 하나 얘기. deps 안 바뀌면 결과도 같을 테니 재계산 skip.
+- Q. getAnalyzedData()는 함수(객체 아님)인데 {}거울로 어떻게 꺼내?
+  → A. 함수를 "호출"하면 return값(객체)으로 대체됨(세션2). 그 객체를 구조분해!
+  useMemo도 똑같이 콜백 return값(객체)을 반환 → 구조분해로 받음.
+- Q. const {return totalCount...} = ... 맞아?
+  → A. ❌ 구조분해엔 return 없음! return은 콜백 "안"에만.
+  왼쪽 const { } = 꺼내기 / 콜백 안 return { } = 돌려주기 (다른 자리!)
+- Q. deps [] 넣으면 mount 때만? 계속?
+  → A. [] = mount 때 1번만(재계산 X) / [todos] = todos 바뀔 때만. (useEffect와 동일)
+
+### ⚠️ 7. 주의 (trade-off)
+
+- 최적화는 공짜 아님 (값 저장 = 메모리 씀 + 코드 복잡)
+- "무거운 연산에만" 쓰기. 아무데나 바르면 오히려 손해
+
+### 💡 한 줄 정리
+
+useMemo(콜백, [deps]) = 콜백 return값 저장+반환. deps 안 바뀌면 재계산 skip(저장값 재사용).
+[todos] = todos 바뀔 때만 계산 → 검색 땐 낭비 안 함!
+
+## 섹션11. React.memo
+
+### 1. 개념
+
+- 컴포넌트 인수로 받아 "최적화된 컴포넌트" 반환. props 안 바뀌면 리렌더 X
+  const memoizedComponent = memo(Component);
+- props 기준 메모이제이션 -> 부모가 리렌더돼도 자신의 props가 안바뀌면 리렌더 X
+
+### 2. 왜 필요?
+
+- 한 todo 체크 -> App 리렌더 -> Header / Editor / List 모든 TodoItem 다 리렌더 = 낭비
+- ("Highlight updates" 개발자 도구로 확인)
+
+### 3. 적용법
+
+export default memo(Header) // props 비교는 React 가 자동 !
+
+### ⭐ 4. Header는 되고 TodoItem은 안 되는 이유
+
+- Header = props 안 받음 -> 비교할게 없음 → 항상 skip ✅
+- TodoItem = 함수 props(onUpdate/onDelete) 받음 → 문제!
+
+### ⭐ 5. 함수 props가 memo 망치는 이유 (세션7 참조!)
+
+- 객체·함수 = "주소(화살표/참조)"로 다뤄짐 → 새로 만들면 새 주소 → === fasle
+- App 리렌더마다 onUpdate를 () => {} 새로 만듦 -> 새 주소
+- memo가 === (객체간의 비교는 주소값으로 수행 )비교 -> 다른 주소 -> flase(바뀜) -> 오판 -> 리렌더
+
+### ⭐ 6. 데이터 vs 함수 — 왜 데이터만 비교? (핵심!)
+
+- id/isDone/content/date = primitive(값 자체) → 값으로 비교 → "진짜 변화"(화면 영향)
+  isDone: false → true = 진짜 다른 값 ✅
+- onUpdate/onDelete = 함수(주소) → 주소 비교 → 매번 새 주소 = "가짜 변화" (화면 무관)
+  하는 일은 같은데 주소만 바뀜 ❌
+- "결과 vs 도구" : onUpdate = 바꾸는 도구 (동작) / isDone = 바뀐 결과 (화면)
+  체크 클릭 -> onupdate 실행 -> isDone 바뀜 -> 그 isDone 이 화면 바꿈
+- -> 화면 바꾸는 "데이터(결과)"만 비교 , 가짜 변화인 "함수(도구)"는 무시 !
+
+### 7. 해결책 2가지
+
+- ① useCallback: 함수 자체 메모이제이션 (매번 새로 안 만들게) — 다음 시간!
+- ② memo 2번째 인수 = custom 비교 함수 (이번 시간)
+
+### ⭐ 8. custom 비교 함수
+
+    memo(TodoItem, (prevProps, nextProps) => {
+      if (prevProps.id !== nextProps.id) return false;
+      if (prevProps.isDone !== nextProps.isDone) return false;
+      if (prevProps.content !== nextProps.content) return false;
+      if (prevProps.date !== nextProps.date) return false;
+      return true;   // 위 데이터 다 같으면(함수 주소 바뀌어도 무시) → skip
+    });
+
+- 매개변수 (prevProps 과거, nextProps 새) ★ 꼭!
+- true = props "안 바뀜" → 리렌더 X / false = props "바뀜" → 리렌더 O
+- 데이터만 검사 , onUpdate / onDelete(함수) 제외 !
+
+### 9. useMemo vs useCallback (형제!)
+
+- useMemo = "값(계산 결과 , 객체)" 저장 / useCallback = "함수" 저장
+- 함수를 매번 새로 안 만들려면 -> useCallback (다음시간)
+- 둘 다 "참조(주소) 유지" 도구
+
+### 10. HOC (고차 컴포넌트)
+
+- memo처럼 컴포넌트 받아 기능 추가한 새 컴포넌트 반환 = HOC(Higher Order Component)
+
+### ❓ 헷갈린 것
+
+- memo는 함수? 메서드? → 메서드=객체에 속한 함수(객체.함수). React.memo=React의 메서드=함수(둘다참). map/filter도 다 메서드
+- 복사(=)=화살표 **화살표 베끼기 (같은 집) / 비교(===)=같은 집이냐 확인** (다른 동작 !)
+  a={x:1};b={x:1};c=a → a===b false / a===c true
+- Header props 안 받는데 memo 통함 → props 없으니 "안 바뀜" → 항상 skip
+- 함수 새 주소 생성 → App 리렌더마다 () => {} 새로 만듦
+- custom 비교에서 onUpdate 무시 = "비교에서 무시"(렌더 판단) ≠ "실행 안 함"(클릭)
+  → onUpdate는 여전히 "실행"됨!
+- custom = "맞춤 / 직접 만든" (≠ 고객!)
+- 데이터(primitive,값비교,진짜변화) vs 함수(객체,주소비교,가짜변화)
