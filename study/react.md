@@ -1770,3 +1770,84 @@ export default memo(Header) // props 비교는 React 가 자동 !
   → onUpdate는 여전히 "실행"됨!
 - custom = "맞춤 / 직접 만든" (≠ 고객!)
 - 데이터(primitive,값비교,진짜변화) vs 함수(객체,주소비교,가짜변화)
+
+## 섹션11. useCallback — 불필요한 함수 재생성 방지
+
+### 1. 개념
+
+- useCallback = 함수를 memoization(기억)해서 매번 새로 안 만들게 하는 훅.
+- React.memo랑 짝 ! (memo는 함수 props 때문에 최적화 깨지는데 , useCallback 이 그걸 해결)
+- React.useCallback = React의 메서드 (함수)
+
+### 2. 왜 필요? (memo만으론 안 되니까!)
+
+- React.memo만 쓰면 -> 함수 props (onUpdate / onDelete) 가 매 렌더마다 새 주소 -> memo 오판
+- custom 비교 함수로 일일이 비교 = 불편 (props 추가 / 이름변경 때마다 수정 필요)
+- memo만 쓰면 함수 props가 매 렌더 리렌더링 → memo 오판 → useCallback으로 해결
+- -> 아예 "함수가 재생성 안 되게" 하는게 나음 = useCallback
+
+### 3. 사용법
+
+    const onCreate = useCallback((content) => {
+      dispatch({ type: "CREATE", data: {...content...} });
+    }, []);   // ← 1번인수=함수 / 2번인수=deps
+
+- useCallback은 넘긴 함수를 "그대로 반환" → 변수(const onCreate)에 담음
+- deps 바뀔 때만 함수 새로 만듦. [] = 마운트 때 1번 만들고 계속 재사용
+
+### ⭐⭐ 4. 실행 / 재생성 / state변경 — 3개 완전 다른 것! (제일 헷갈림!)
+
+    ① 함수 "실행"   = onCreate("밥") 호출 → 재료(content) 넣고 작동 → dispatch 실행
+       → 언제든 호출하면 실행됨! (deps 무관)
+    ② 함수 "재생성" = App 리렌더 시 onCreate를 "새로 만듦"
+       → useCallback []로 막음 (마운트 때 만든 함수 계속 씀 = 주소 유지)
+    ③ state "변경"  = dispatch가 todos를 바꿈 (slot에 저장)
+       → dispatch(useReducer)가 하는 일. 함수랑 별개!
+
+- useCallback = ②(재생성) 막기 → 주소 유지 → memo가 skip!
+
+### ⭐⭐ 5. 매개변수 vs deps — 완전 다름! (핵심 헷갈림!)
+
+- content/targetId = "매개변수"(호출 시 넣는 재료) → deps 아님!
+  onCreate("밥") 하면 content = "밥" 들어옴 (실행 시)
+- deps = "함수가 밖 에서 참고하는 값 중 "바뀌는" 것"
+- 🏭 비유: onCreate=기계 / content=넣는 재료. 재료 바뀐다고 기계 새로 안 만듦!
+  → content는 재료(매개변수)라 deps에 안 넣음!
+
+### ⭐ 6. deps에 뭘 넣나? (밖에서 참고 + 바뀌는 것)
+
+- onCreate "안"에서, onCreate "밖(=App scope)"의 변수 씀 = "밖에서 참고" = 클로저(세션11)
+  (dispatch/idRef는 App "안" + onCreate "밖"에 있음 — "App 밖"이 아니라 "onCreate 밖"!)
+- onCreate 참고하는 밖의 것 = **\_dispatch, \_idRef** (content 매개변수라 제외)
+- dispatch/idRef = React가 리렌더돼도 "항상 똑같이" 유지 → 안 바뀜
+  → 함수 다시 만들 이유 없음 → deps []
+- (대조) 만약 함수가 밖의 state(todos)를 직접 쓰면 → [todos] 넣어야 함
+  (최신 todos를 봐야 하니까. 근데 우리는 dispatch만 써서 불필요 → [])
+
+### 7. memo + useCallback 조합 (최종 최적화!)
+
+- App: onCreate/onUpdate/onDelete를 useCallback으로 (재생성 방지 → 주소 유지)
+- TodoItem: memo로 감쌈 → props(함수 주소) 안 바뀌니 → 리렌더 skip!
+- → custom 비교 함수 없이도 최적화 완성! (useCallback이 주소 유지해주니까)
+
+### 8. 최적화 언제/무엇? (가이드)
+
+- 언제: 기능 완성 후 "마지막"에 (일찍 하면 기능 수정 때 최적화 깨짐/고장)
+- 무엇: 꼭 필요한 것만! (무거운 연산/함수/컴포넌트)
+  - 최적화 도구도 "연산"을 함(props 비교, 값 저장) → 단순 컴포넌트(Header)는 그냥 리렌더가 더 빠를 수도!
+
+### ❓ 내가 헷갈렸던 것 (복습!)
+- Q. content 바뀌면 deps에 content 넣어야? → 아니! content=매개변수(실행 시 넣음), deps 아님
+- Q. deps [] = 함수 한 번만 실행? → 아니! []=함수 "재생성" 안 함(주소 유지). 실행은 호출할 때마다!
+- Q. "실행"이 dispatch야? → state 변경은 dispatch(③), useCallback은 재생성 막기(②). 다른 일!
+- Q. "밖에서 참고"가 뭐야? → onCreate "안"에서, onCreate "밖(=App scope)"의 변수(dispatch/idRef) 씀 = 클로저(세션11). ※"App 밖"이 아니라 "onCreate 밖(=App 안)"!
+- Q. dispatch/idRef "안 바뀐다"? → React가 리렌더돼도 항상 똑같이 유지 (안정적)
+- Q. 왜 함수 반환값을 변수에 담아? → useCallback이 "함수(값)"를 반환=표현식 → 담김(세션12)
+    (담을 수 없는 건 "문": if/for. const x = if() ❌)
+- Q. 왜 익명함수로 전달? → useCallback에 함수를 바로 인수로 넘기려고 인라인 정의(이름 불필요)
+- Q. useCallback도 메서드? → React.useCallback = React의 메서드 = 함수 (둘 다 참)
+- Q. "연산 필요" 의미? → 최적화 도구(memo 등) 자체도 일(비교/저장)을 함 → 공짜 아님
+
+### 💡 한 줄 정리
+useCallback(함수, [deps]) = 함수 재생성 막기(주소 유지) → memo와 짝 → 리렌더 skip
+content=매개변수(≠deps) / deps=밖에서 참고하는 "바뀌는" 값(여기선 없어서 [])
