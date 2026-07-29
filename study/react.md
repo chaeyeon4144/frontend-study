@@ -1837,17 +1837,192 @@ export default memo(Header) // props 비교는 React 가 자동 !
   - 최적화 도구도 "연산"을 함(props 비교, 값 저장) → 단순 컴포넌트(Header)는 그냥 리렌더가 더 빠를 수도!
 
 ### ❓ 내가 헷갈렸던 것 (복습!)
+
 - Q. content 바뀌면 deps에 content 넣어야? → 아니! content=매개변수(실행 시 넣음), deps 아님
 - Q. deps [] = 함수 한 번만 실행? → 아니! []=함수 "재생성" 안 함(주소 유지). 실행은 호출할 때마다!
 - Q. "실행"이 dispatch야? → state 변경은 dispatch(③), useCallback은 재생성 막기(②). 다른 일!
 - Q. "밖에서 참고"가 뭐야? → onCreate "안"에서, onCreate "밖(=App scope)"의 변수(dispatch/idRef) 씀 = 클로저(세션11). ※"App 밖"이 아니라 "onCreate 밖(=App 안)"!
 - Q. dispatch/idRef "안 바뀐다"? → React가 리렌더돼도 항상 똑같이 유지 (안정적)
 - Q. 왜 함수 반환값을 변수에 담아? → useCallback이 "함수(값)"를 반환=표현식 → 담김(세션12)
-    (담을 수 없는 건 "문": if/for. const x = if() ❌)
+  (담을 수 없는 건 "문": if/for. const x = if() ❌)
 - Q. 왜 익명함수로 전달? → useCallback에 함수를 바로 인수로 넘기려고 인라인 정의(이름 불필요)
 - Q. useCallback도 메서드? → React.useCallback = React의 메서드 = 함수 (둘 다 참)
 - Q. "연산 필요" 의미? → 최적화 도구(memo 등) 자체도 일(비교/저장)을 함 → 공짜 아님
 
 ### 💡 한 줄 정리
+
 useCallback(함수, [deps]) = 함수 재생성 막기(주소 유지) → memo와 짝 → 리렌더 skip
 content=매개변수(≠deps) / deps=밖에서 참고하는 "바뀌는" 값(여기선 없어서 [])
+
+## 섹션12. Context — props drilling 해결
+
+### Context란?
+
+- props를 대체해서 컴포넌트 간 데이터를 전달하는 또 하나의 방법
+- props의 단점(props drilling)을 해결하기 위해 존재
+- = 데이터를 보관하는 "데이터 보관소(객체)"
+
+### props의 단점 = props drilling
+
+- props는 부모 → 자식(직속)으로만 전달 가능
+- 한 단계(App→Child)는 OK
+- 깊어지면(App→ChildA→ChildB): App이 ChildB에 직접 못 줌(직속 아님)
+  → ChildA가 "중간 다리"로 억지 전달 (App→ChildA→ChildB)
+- 투두 예시: App의 onUpdate/onDelete → List(중간 다리) → TodoItem 이중 전달
+- ⚠️ 서비스 커지면: 중간 다리 수십 개, 타이핑 폭발, prop 이름 바뀌면 다 수정 = 끔찍
+- 이게 props가 "드릴처럼 땅 파고 내려가는" 것 같다 해서 props drilling
+
+### Context가 해결!
+
+- Context(데이터 보관소)에 App이 todos/onCreate/onUpdate/onDelete 보관
+- → 필요한 컴포넌트(TodoItem)가 중간 다리 없이 "직통(direct)"으로 꺼내 씀!
+- → props drilling 해결 🎯
+
+### Context 여러 개 가능
+
+- A Context, B Context ... 여러 개 만들 수 있음
+- 왼쪽 자식들 = A Context / 오른쪽 자식들 = B Context 로 나눠 공급 가능
+
+### 🔗 연결
+
+- Context = 전역 공유의 "기초" → atom(Recoil/Jotai)의 기본 버전
+- 비유 🏪: 모든 집 거쳐 가기(props drilling) vs 중앙 창고에서 직통(Context)
+
+### 💡 한 줄 정리
+
+props는 부모→자식만 → 깊어지면 중간 다리 지옥(props drilling)
+→ Context(데이터 보관소)에 담아 직통으로 공급해서 해결!
+
+## 섹션12. Context 사용하기 (실습) — createContext / Provider / useContext
+
+### 3단 콤보
+
+- ① createContext() = context 객체 "만들기"
+- ② Provider = 데이터 "공급"(자식 감싸기)
+- ③ useContext = 데이터 "꺼내기"
+
+### ① createContext — 객체 만들기
+
+    import { createContext } from "react";
+    export const TodoContext = createContext();  // App __밖에서!
+
+- createContext() 호출 = "context 객체" 하나 생성/반환 (Provider 등 프로퍼티 담김)
+- App "밖"에 선언: App 안에 두면 리렌더마다 재생성됨 (mockData/useRef 밖으로 뺀 것과 같은 원리)
+- export: 다른 파일에서 useContext(TodoContext) 쓰려고 (export는 뭐든 됨, 컴포넌트 전용 X)
+
+### ② Provider — 데이터 공급 (자식 감싸기)
+
+    <TodoContext.Provider value={{ todos, onCreate, onUpdate, onDelete }}>
+      <Editor />
+      <List />
+    </TodoContext.Provider>
+
+- TodoContext.Provider = 컴포넌트 (context 객체의 프로퍼티인데 컴포넌트!)
+- value = props (Provider에 "이 데이터 공급해줘" 하고 주는 props )
+- value={{ }} = 외부 {} JSX 값 삽입 + 내부 {} 객체
+- Provider로 감싼 자식들이 → value 데이터를 직통으로 공급받음
+
+### ③ useContext — 데이터 꺼내기
+
+    import { useContext } from "react";
+    import { TodoContext } from "../App";
+    const { onCreate } = useContext(TodoContext);  // 필요한 것만 구조분해!
+
+- useContext = React hook (use 접두사)
+- 인수 = context "객체"(TodoContext) — 컴포넌트 아님!
+- 반환 = value로 넣은 { todos, onCreate, ... } → 구조분해로 필요한 것만
+- → props로 받던 걸 제거하고 Context에서 직통으로!
+
+### 결과
+
+- props drilling 사라짐 (중간 다리 List가 onUpdate/onDelete 전달 안 해도 됨)
+- 코드 간결! 단, useCallback/memo 최적화가 풀림 → 다음 시간 해결
+
+### ❓ 내가 헷갈렸던 것
+
+- Q. TodoContext가 컴포넌트? → 아니! TodoContext=\_객체\_\_ / TodoContext.Provider= 컴포넌트 (프로퍼티가 컴포넌트 담음)
+- Q. Provider가 props? → 아니! Provider=**컴포넌트\_, value가 \_props**
+- Q. export했으니 컴포넌트? → 아니! export는 뭐든 됨 (객체/함수/숫자...). TodoContext는 객체
+- Q. useContext 인수가 컴포넌트? → 아니! context 객체(TodoContext)를 넣음
+- Q. value={{ }} 이중 중괄호? → 외부{} **JSX삽입* + 내부{} 객체*** (맞음!)
+- Q. 왜 Context "API"? → API= 기능 도구 세트. createContext+Provider+useContext 묶음
+
+### 💡 한 줄 정리
+
+createContext(**만들기*) → Provider value로 공급(감싸기) → useContext로 *꺼내기**
+props drilling 해결! (TodoContext=*객체 / .Provider=*컴포넌트 / useContext= hook )
+
+## 섹션12. Context 분리하기 — Context + 최적화 유지
+
+### 문제: Context 적용하니 최적화가 풀림
+
+- Context 적용 후 체크박스 클릭 → 관련없는 TodoItem들도 다 리렌더 (memo 무용지물!)
+
+### 원인: value 객체가 매 렌더 새로 생성
+
+- <Provider value={{ todos, onCreate, ... }}> 의 { } 는 매 렌더마다 "새로" 씀
+  → 매번 새 객체(새 주소) (세션7 참조!)
+- → context value 바뀜 → 구독한 컴포넌트(useContext) 다 리렌더
+- ⭐ memo가 **못막음*! (context = *뒷문** / memo는 정문(props)만 검사)
+
+### 왜 useCallback 했는데도 안 됨?
+
+- 함수(onCreate 등)는 useCallback으로 안정(같은 주소) ✅
+- 근데 그 함수들을 "담은 객체 { }"가 매 렌더 새로! ❌
+- → 함수는 안정인데 "포장 상자(객체)"가 새 주소 → context value 바뀜
+
+### 해결 1: Context 두 개로 분리
+
+    export const TodoStateContext = createContext();     // 변경되는 값
+    export const TodoDispatchContext = createContext();  // 변경 안 되는 값
+
+- TodoStateContext = todos (state, 변경됨)
+- TodoDispatchContext = onCreate/onUpdate/onDelete (변경 안 됨)
+- → todos 바뀌어도 Dispatch 상자는 그대로 → Editor/TodoItem 리렌더 X
+
+### 해결 2: Dispatch 객체를 useMemo 로 고정
+
+    const memoizedDispatch = useMemo(() => {
+      return { onCreate, onUpdate, onDelete };
+    }, []);
+
+- useCallback = 함수 하나하나 안정 / useMemo = 그 함수들 "담은 객체" 안정
+- → 둘 다 필요! (함수 안정 + 객체 안정)
+- deps [] = onCreate 등이 안 바뀌니까 (dispatch/ref 기반)
+
+### 계층 구조
+
+    <TodoStateContext.Provider value={todos}>
+      <TodoDispatchContext.Provider value={memoizedDispatch}>
+        <Editor /> <List />
+          </TodoDispatchContext.Provider>
+    </TodoStateContext.Provider>
+
+- 감싸는 순서(바깥/안)는 상관없음 (구조일 뿐, 각 자식이 필요한 context 골라 씀)
+
+### 컴포넌트별 사용
+
+- Editor: onCreate만 → useContext(TodoDispatchContext) → 구조분해 { onCreate }
+- TodoItem: onUpdate/onDelete → useContext(TodoDispatchContext) → 구조분해
+- List: todos → useContext(TodoStateContext) → 구조분해 X (배열 그대로!)
+
+### State는 배열, Dispatch는 객체
+
+- State: value={todos} (배열 그대로) → const todos = useContext(...) (구조분해 X)
+- Dispatch: value={{...}} (객체) → const { onCreate } = useContext(...) (구조분해 O)
+
+### ❓ 내가 헷갈렸던 것
+
+- Q. "객체 다시 생성"? → 매 렌더마다 { } 새로 씀 = 새 주소 (세션7, 뿌리!)
+- Q. Provider 왜 리렌더? → value 객체 새 주소 → props 바뀜 → Provider+자식 리렌더
+- Q. memo 했는데 왜? → context는 "뒷문" → memo(정문=props)가 못 막음
+- Q. useCallback 했는데 왜 useMemo도? → 함수는 안정, 근데 담은 "객체"가 새로 -> 객체로 새로 useMemo
+- Q. Dispatch 이름? → useReducer의 dispatch(상태 변경 요청)에서 착안 . 변경 함수들 모음
+- Q. 안 바뀌는 값? → React가 유지: dispatch(useReducer)/setState/ref → deps에 안 넣어도 됨
+- Q. deps 규칙? → 콜백이 쓰는 "바뀌는 값"은 deps에 넣기 (안 넣으면 옛값=버그)
+- Q. State는 왜 배열? → todos 자체가 배열(할 일 목록). value={todos}라 구조분해 X
+
+### 💡 한 줄 정리
+
+Context value 객체가 매 렌더 새로 → 최적화 풀림 (context는 memo 못 막음, 뒷문)
+→ Context 분리(State/Dispatch) + Dispatch 객체 useMemo로 고정 = 최적화 유지!
