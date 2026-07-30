@@ -2030,11 +2030,13 @@ Context value 객체가 매 렌더 새로 → 최적화 풀림 (context는 memo 
 ## 섹션13. 페이지 라우팅 - 개념 (MPA vs SPA)
 
 ### 페이지 라우팅이란?
+
 - 경로(URL)에 따라 알맞은 페이지를 화면에 렌더링하는 것
 - 예: /new → New 페이지 / /diary/1 → Diary 페이지
 - 감정일기장은 여러 페이지(Home/New/Diary) → 라우팅 필요!
 
 ### 등장인물 (배달 비유)
+
 - 사용자(User) = 사람
 - 브라우저(Client) = 크롬/사파리 (화면 그리는 프로그램, 손님)
 - 웹서버(Server) = 요청하면 파일 주는 "프로그램" (배달부)
@@ -2042,12 +2044,14 @@ Context value 객체가 매 렌더 새로 → 최적화 풀림 (context는 memo 
   - 기계 아님! 프로그램. 어떤 컴퓨터 위에서 돎 (localhost=내 컴퓨터)
 
 ### MPA (Multi Page Application) = 전통 방식
+
 - 서버가 페이지마다 HTML 파일을 "다" 가지고 있음 (index.html/blog.html/setting.html)
 - 브라우저가 /blog 요청 → 서버가 blog.html 찾아서 반환 → 브라우저 렌더
 - 서버가 완성된 html 주는 것 = SSR(서버 사이드 렌더링)
 - 단점: ① 페이지 이동마다 서버 요청 → 깜빡임(전체 새로 렌더) ② 사람 많으면 서버 부하
 
 ### SPA (Single Page Application) = React 방식
+
 - 서버는 index.html "1개"(빈 껍데기) + 번들JS만 가짐
 - 처음 접속 시 한 번 → index.html + 번들JS를 브라우저가 받음
 - ⭐ 페이지 이동 시 → 서버 요청 "안 함"! 브라우저가 스스로 컴포넌트 교체
@@ -2085,3 +2089,64 @@ Context value 객체가 매 렌더 새로 → 최적화 풀림 (context는 memo 
 
 라우팅 = 경로에 맞는 페이지 보여주기. MPA는 서버가(SSR), SPA는 브라우저가 스스로(CSR).
 SPA = index.html 1개+번들 한 번 받고, 페이지 이동은 서버 요청 없이 컴포넌트 교체 = 빠름!
+
+## 섹션13. 페이지 라우팅 설정 - react-router-dom
+
+### react-router란?
+
+- 리액트 앱의 페이지 라우팅을 도와주는 라이브러리 (npmjs 정식 등록, 대부분의 React 앱이 씀)
+- 설치: npm i react-router-dom → package.json dependiencies 에 추가됨
+
+### ① BrowserRouter로 App 감싸기 (main.jsx)
+
+    import { BrowserRouter } from "react-router-dom";
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+
+- BrowserRouter = 현재 URL (주소)을 저장하고 감지하는 컴포넌트
+- App의 "부모"로 감싸면 → 모든 컴포넌트가 현재 URL을 읽고 변화 감지 가능
+- 내부적으로 state로 현재 위치 저장 → URL 바뀌면 리렌더 → 새 컴포넌트
+- 컴포넌트 트리 보면: Navigation.Provider / Location.Provider (Context)로 자손에게 라우팅 데이터 공급
+- import { BrowserRouter } = named export (중괄호로 골라옴)
+
+### ② pages 폴더 (컨벤션)
+
+- src/pages/ 에 페이지 역할 컴포넌트 모음 (Home.jsx, New.jsx, Diary.jsx, Notfound.jsx)
+- 리액트는 페이지도 "컴포넌트"! (모든 게 컴포넌트)
+
+### ③ Routes / Route로 라우팅 설정 (App.jsx)
+
+    import { Routes, Route } from "react-router-dom";
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/new" element={<New />} />
+      <Route path="/diary" element={<Diary />} />
+      <Route path="*" element={<Notfound />} />
+    </Routes>
+
+- Routes = switch (URL 보고 매칭되는 것 하나 고름)
+- Route = case (path=경로 / element=렌더할 컴포넌트)
+- path="\*" = 와일드카드 = switch의 default (아무것도 안 맞으면)
+- 동작: 위에서부터 URL과 path 매칭 → 맞는 Route의 element 렌더
+
+### ⚠️ 주의점 2가지
+
+- ① Routes 안에는 "Route 만" 넣을 수 있음 ! (div 넣으면 오류 : "Div is not a Route Component")
+- ② Routes "밖" 요소는 라우팅과 무관 → 모든 페이지에 공통 렌더
+  <><div>Hello</div><Routes>...</Routes></> → "Hello"는 모든 페이지에 뜸
+  → 공통 요소(헤더 등)만 Routes 밖에! 아니면 Routes 안 Route로.
+
+### ❓ 내가 헷갈렸던 것
+
+- Q. 왜 중괄호로 import? → named export (react-router-dom이 여러 개를 named로 내보냄). 중괄호=named
+- Q. state로 관리 이유? → URL 바뀌면 state 변경 → 리렌더 → 새 컴포넌트 (slot에 저장)
+- Q. BrowserRouter가 app 감시? → "감시"(X, 지켜봄)가 아님! App 부모로 감싸 → ① URL(주소)을 "감지"(변화 알아챔) ② 라우팅 데이터를 Context로 "공급". 대상은 App이 아니라 URL!
+- Q. BrowserRouter(Provider) vs Routes/Route 차이?
+  → BrowserRouter=라우팅 "데이터" Context 공급(전역) / Routes·Route=URL 맞는 "컴포넌트 고르는 장치"(App이 배치)
+- Q. pages 폴더? → 컨벤션(관습)
+
+### 💡 한 줄 정리
+
+BrowserRouter(App 감싸 라우팅 데이터 공급) + Routes(switch)/Route(case)로 URL 맞는 페이지 렌더.
+Routes 안엔 Route만 / Routes 밖은 모든 페이지 공통!
