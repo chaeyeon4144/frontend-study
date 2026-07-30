@@ -2026,3 +2026,62 @@ props drilling 해결! (TodoContext=*객체 / .Provider=*컴포넌트 / useConte
 
 Context value 객체가 매 렌더 새로 → 최적화 풀림 (context는 memo 못 막음, 뒷문)
 → Context 분리(State/Dispatch) + Dispatch 객체 useMemo로 고정 = 최적화 유지!
+
+## 섹션13. 페이지 라우팅 - 개념 (MPA vs SPA)
+
+### 페이지 라우팅이란?
+- 경로(URL)에 따라 알맞은 페이지를 화면에 렌더링하는 것
+- 예: /new → New 페이지 / /diary/1 → Diary 페이지
+- 감정일기장은 여러 페이지(Home/New/Diary) → 라우팅 필요!
+
+### 등장인물 (배달 비유)
+- 사용자(User) = 사람
+- 브라우저(Client) = 크롬/사파리 (화면 그리는 프로그램, 손님)
+- 웹서버(Server) = 요청하면 파일 주는 "프로그램" (배달부)
+  - server = serve(제공) → "요청하면 주는 것"
+  - 기계 아님! 프로그램. 어떤 컴퓨터 위에서 돎 (localhost=내 컴퓨터)
+
+### MPA (Multi Page Application) = 전통 방식
+- 서버가 페이지마다 HTML 파일을 "다" 가지고 있음 (index.html/blog.html/setting.html)
+- 브라우저가 /blog 요청 → 서버가 blog.html 찾아서 반환 → 브라우저 렌더
+- 서버가 완성된 html 주는 것 = SSR(서버 사이드 렌더링)
+- 단점: ① 페이지 이동마다 서버 요청 → 깜빡임(전체 새로 렌더) ② 사람 많으면 서버 부하
+
+### SPA (Single Page Application) = React 방식
+- 서버는 index.html "1개"(빈 껍데기) + 번들JS만 가짐
+- 처음 접속 시 한 번 → index.html + 번들JS를 브라우저가 받음
+- ⭐ 페이지 이동 시 → 서버 요청 "안 함"! 브라우저가 스스로 컴포넌트 교체
+- 브라우저가 JS로 화면 그리는 것 = CSR(클라이언트 사이드 렌더링)
+- 장점: 깜빡임 없이 빠름 + 서버 부하 적음
+
+### 화면 그리는 흐름 (SPA)
+
+- ① npm run dev → 웹서버(vite) 켜기 → localhost:5173 주소 생김
+- ② 브라우저: "localhost:5173 줘!" 요청
+- ③ Vite: index.html(빈 껍데기) + 번들JS 배달 (JS는 묶어서=번들링)
+- ④ 브라우저: index.html(빈 껍데기) → 번들JS 실행
+- ⑤ main.jsx의 createRoot(root).render(<App/>) → React가 화면 그림
+
+### 번들링(bundling)
+
+- Vite가 내 컴포넌트·JS + React 라이브러리를 "하나로" 묶는 것
+- 왜? 여러 개 따로 배달하면 느리니까 → 하나로 묶어 한 번에
+- 이 번들 안에 모든 페이지 컴포넌트가 있음 → 브라우저가 스스로 교체 가능
+
+### 라우팅 = 누가 하나? (MPA vs SPA 핵심 차이!)
+
+- MPA: 웹서버 가 알맞은 html 돌려줌
+- SPA(React): 브라우저 가 스스로 알맞은 컴포넌트로 교체 → react-router로
+
+### ❓ 내가 헷갈렸던 것
+
+- Q. 웹서버가 뭐야? → 요청하면 파일 주는 "프로그램"(기계 아님). 항상 켜져서 요청 대기. Vite가 그거
+- Q. SPA는 페이지 이동마다 번들 받아? → 아니! 처음 한 번만 받고, 이동은 서버 요청 X, 브라우저가 스스로!
+- Q. 서버가 리액트앱을 받아? → 아니! 브라우저가 받음 (서버=주는 쪽)
+- Q. React = 번들 전체? → 아니! React= 라이브러리 (도구). 번들=React+내코드
+- Q. named vs default? → named=중괄호 O(여러 개) / default=중괄호 X(대표 1개)
+
+### 💡 한 줄 정리
+
+라우팅 = 경로에 맞는 페이지 보여주기. MPA는 서버가(SSR), SPA는 브라우저가 스스로(CSR).
+SPA = index.html 1개+번들 한 번 받고, 페이지 이동은 서버 요청 없이 컴포넌트 교체 = 빠름!
