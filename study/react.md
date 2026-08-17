@@ -2150,3 +2150,70 @@ SPA = index.html 1개+번들 한 번 받고, 페이지 이동은 서버 요청 �
 
 BrowserRouter(App 감싸 라우팅 데이터 공급) + Routes(switch)/Route(case)로 URL 맞는 페이지 렌더.
 Routes 안엔 Route만 / Routes 밖은 모든 페이지 공통!
+
+## 섹션13. 페이지 이동 - Link / useNavigate
+
+### 페이지 이동 두 가지 방법
+
+- ① Link 컴포넌트 = 화면에 보이는 링크 (단순 이동)
+- ② useNavigate 훅 = 코드로 이동 (이벤트 핸들러 안, 로직 후)
+
+### ① Link 컴포넌트
+
+    import { Link } from "react-router-dom";   // named!
+    <Link to="/new">New</Link>
+
+- HTML의 <a> 태그를 대체하는 컴포넌트
+- to = props로 이동할 경로 (문자열) / children = 링크 텍스트
+
+### ⭐ 왜 <a> 대신 Link? (SPA!)
+
+- <a> 태그 = 새로고침(서버 요청) = MPA 방식 → 페이지 깜빡임
+- Link = CSR(클라이언트 사이드 렌더링) = 이전 페이지 안 날리고 "필요한 컴포넌트만 교체"
+  → 새로고침 없이 빠르고 매끄럽게 이동!
+- 결론: React 앱 내부 링크는 <a> 말고 Link!
+
+### ② useNavigate 훅 (코드로 이동)
+
+    import { useNavigate } from "react-router-dom";   // named!
+    const nav = useNavigate();       // 훅 → "이동 함수(nav)" 반환
+    const onClickButton = () => {
+      nav("/new");                   // 클릭하면 /new로 이동!
+    };
+    <button onClick={onClickButton}>New로 이동</button>
+
+- useNavigate = 훅 → 이동 함수를 "반환" (useState가 setter 반환하듯!)
+- nav = 반환된 함수에 붙인 이름
+- 언제? 이벤트 핸들러 안에서, 로직/조건 따라 이동할 때 (로그인 성공 후 등)
+
+### ⭐ nav vs nav("/new") (괄호=실행! 세션2)
+
+- nav = 함수 "자체" (참조만) → 이동 안 함!
+- nav("/new") = 함수 "실행"(괄호) + "/new" 인수(목적지) → 실제 이동!
+- console.log(nav) 하면 → (to, options = {}) => {...} (진짜 이동 함수 확인 가능)
+- 인수 "/new"는 함수의 to 매개변수(경로)에 들어감
+- 핸들러 "안"에 nav("/new") → 클릭할 때 실행 (밖에 바로 쓰면 렌더 때 즉시 실행! 47강)
+
+### options = {} (매개변수 기본값, 세션18)
+
+- (to, options = {}) 에서 options = {} = "options 안 주면 {}로 대신" (기본값)
+- 그래서 nav("/new")만 해도 OK (options는 알아서 {})
+- = useCounter(initial = 0)의 그 기본값과 같은 원리
+
+### Link vs useNavigate 언제?
+
+- Link = 단순 링크 ("누르면 이동", 화면에 링크로 보임)
+- useNavigate = 이벤트+로직 후 이동 (저장 후 이동, 로그인 성공 시 이동 등 조건)
+
+### ❓ 내가 헷갈렸던 것
+
+- Q. 이동 함수 = useNavigate? → 아니! useNavigate=훅, 그게 이동 함수(nav)를 "반환". 2단계
+- Q. 왜 nav 말고 nav("/new")? → 괄호=실행(세션2)! nav=참조만 / nav("/new")=실행+경로인수
+- Q. console.log(nav) = (to, options={})=>{} → 반환된 진짜 이동 함수! to=경로 매개변수
+- Q. options = {}? → 매개변수 기본값(세션18). 안 주면 {}로 대신 → nav("/new")만 해도 OK
+- Q. Link랑 useNavigate 차이? → Link=단순 링크 / useNavigate=로직 후 이동
+
+### 💡 한 줄 정리
+
+Link=단순 링크(<a> 대체, CSR), useNavigate=훅→nav 반환→nav("/new")로 로직 이동.
+둘 다 CSR(컴포넌트 교체)이라 새로고침 없이 빠름!
