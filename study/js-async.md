@@ -119,6 +119,72 @@ Day1 비동기 (단일 스레드라 막혀서 브라우저 API로)
 
 
 
+## 📖 3강 — 런타임 & 이벤트 루프
+
+1) 런타임이란? (엔진 ≠ 런타임, 주방 비유)
+런타임 = JS가 돌아가는 작업장(주방)전체
+엔진은 런타임 안의 부품 하나 (엔진 ≠ 런타임)
+🍳엔진 = 요리사(순수 JS 계산만) / 런타임 = 주방 전체 (요리사 + 타이며·오븐 = Web API + 대기선반 = Queue + 주방장 = Event Loop)
+요리사 혼자선 타이머(setTimeout)·배달(fetch)못 함 → 주방(런타임)이 도구 줘서 비동기 가능
+구성 = JS 엔진 + Web API + Callback Queue + Event Loop
+
+2) 런타임 두 종류 (브라우저 / node.js)
+브라우저(크롬 등):웹페이지에서 JS실행 / 엔진 = V8 / API=DOM,fetch,setTimeout
+node.js:브라우저 밖(내 컴퓨터·서버)에서 JS 실행 / 엔진=V8(크롬과 같음)/ API = 파일 읽기 , 서버 등
+둘 다 안에 JS 엔진을 품고 있어서 JS 실행 가능 (node 파일.js, npm, Vite가 node.js 위에서 돎)
+
+3) 비동기 전체 흐름 (콜스택 → Web API → 콜백큐 → 이벤트루프)
+① 콜스택이 setTimeout/fetch 같은 Web API 기능 만남
+② 그 작업을 Web API에 맡기고 setTimeout은 바로 pop (콜스택은 다음 줄 계속)
+③ Web API가 백그라운드에서 처리 (타이머/요청) ← 병렬
+④ 처리 끝나면 콜백 함수를 Callback Queue에 넣음
+⑤ EventLoop: 콜스텍 비면 → 콜백큐에서 꺼내 콜스택으로 → 실행
+
+4) Callback Queue (큐 = 선입선출 FIFO)
+스택(접시,후입선출)과 달리 입력·출력 위치가 달라 → 들어온 순서대로 나감 (First In First Out)
+큐에 오는 건 "실행 준비된 콜백 함수 그 자체" (결과 값 아님 ! 실행 전)
+예 : setTimeout 콜백 , 클릭 핸들러 , fetch , .then 콜백
+
+5) Event Loop (콜스택 비면 → 콜백큐에서 꺼내 콜스택으로)
+역할 = 순서 결정 담당
+콜스택이 비어 있을 때만 콜백큐 작업을 콜스택으로 옮겨 실행
+⚠️방향: 콜백큐 → 콜스택 
+
+6) 0초 setTimeout 트레이스 (world → hello)
+setTimeout(() => console.log("hello"), 0);
+console.log("world");
+
+setTimeout push → Web API에 맡기고 pop → (0초 타이머) → world push·출력·pop → 콜스택 빔 → Evnet Loop가 hello콜백을 콜스택으로 → "hello"
+출력:world,hello (0초여도 ! 콜백은 큐 거쳐 콜스택 빌 때까지 기다림)
+
+7) Micro vs Macro 큐 (promise=micro 우선 / setTimeout=macro)
+Macrotask Queue ← setTimeout , 이벤트
+Microtask Queue ← Promise 결과 (우선순위 높음)
+Event Loop : 콜스텍 비면 → Mico 먼저 다 비우고 → Macro 하나
+👉 지금은 "Promis(micro)"가 setTimeout(macro)보다 먼저"만 기억 (Promise 때 다시)
+
+
+
+### ❓ 내가 헷갈렸던 것 (3강)
+1. 런타임 = 엔진 아님 ! 엔진 포함한 환경 전체 (엔진 + Web API + Callback Queue + Event Loop)
+2. node.js = 브라우저 밖에서 JS 돌리는 또 다른 런타임 (안에 V8 엔진 있음)
+3. 이동 방향 = 콜백큐 → 콜스택
+4. 콜백큐에 오는건 "결과값" 아니라 콜백 함수 그 자체 (실행전)
+5. 컨텍스트 = 함수 실행 자체 (접시) , 콜스택에 올리는게 = push
+
+
+
+### 💡 한 줄 정리 (3강)
+JS 엔진은 단일 스레드·동기지만, 런타임(엔진 + Web API + Queue + Event Loop) 덕분에 비동기 처리 가능. Web API가 백 그라운드 병렬 처리 → 콜백큐 → 콜스택이 비면 Event Loop이 꺼내 실행.
+
+
+### 🔗 연결
+Day1·2: 콜스택 단일 스레드(동기) → 막히니까 런타임이 비동기 가능하게
+콜백 = 다른 함수에 넘긴 함수 (세션6)
+다음: Promise → 왜 micro가 먼저인지 실제로 봄
+
+
+
 ## ▶️ 다음 강의
 runtime 편 = [브라우저 API] + 대기줄(Task Queue) + 이벤트 루프 (Day1에 맛본 것)
 그 다음: Promise / .then / .catch / async·await
