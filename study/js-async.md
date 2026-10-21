@@ -237,6 +237,110 @@ setUser((user) => roleCheck(user , (user) => pay(user , printUser)))
 
 
 
+## 📖 5강 — Promise
+
+0) 왜 Promise? (콜백지옥 펴기)
+콜백으로 비동기 순서를 맞추면 안으로 안으로 중첩됨(콜백지옥). Promise는 상자를 돌려받아 .then 으로 바깥에
+이어붙여서 그 계단을 일자로 편다.
+
+
+1) Promise = 결과를 나중에 주는 약속 상자(객체) — 함수 아님
+📌강의: "Promise는 약속을 의미하는 객체. 상태 정보를 알려주겠다는 약속." → 풀면: 비동기 작업의 결과 (성공값/에러)
+와 지금 상태를 담아 알려주는 객체.
+
+🧾비유: "운송장(상태 라벨)이 붙은 상자" 하나 — 운송장=지금 상태 / 상자 안=결과 담길 공간 (한 몸!). 주문하면 물건 대신 이 상자(약속)를 먼저 받음.
+⚠️함수 아니라 객체(상자). (콜백 = 함수 / Promise = 객체 )
+new Promise() 즉시 상자 생성 , 상태는 pending으로 시작.
+
+
+2) 3가지 상태 (pending / fulfilled / rejected, 택배 비유)
+📌강의:"pending = 로직이 완료되지 않음." → "로직" = 그 비동기 작업(코드) 가 하는 일 (예 : setTimeout으로 데이터 준비)
+
+pending(대기) = 작업 진행 중 , 결과 없음(undefined)🚚 배송중
+fulfilled(이행=성공) = 성공 , resolve한 값 담김 ✅ 도착
+rejected(실패) = 실패/오류 , reject한 에러 담김  ❌ 분실
+📌"한 번 이행/거부되면 안 바뀜" → 도착한 택배가 다시 배송중 안 되듯, pending → 성공 OR 실패 (딱 하나, 한 번, 고정)
+
+3) 상자 ≠ 내용물 
+상자(Promise 객체) = fetchUser() 가 돌려주는값
+내용물(user 등) = 상자 안의 결과값
+console.log(상자) → Promise {<fulfilled> : {name : "도라"}} (통째)
+.then((user) => console.log(user)) → 내용물만 {name: "도라"} (.then 이 열어서 알맹이만 건넴)
+
+
+4) 만들기: new Promise(executor) — 생성자 / executor / resolve·reject
+📌강의: "생성자 함수로 생성. executor라는 함수를 전달받음." → 풀면 :
+
+생성자 함수 = 객체 찍어내는 틀 , new 붙여 호출 (new Date()가 생성자!)
+new Promise((resolve , reject) => {...}) 의 화살표 함수 = executor ("상자 만들 때 할 일" , 즉시 실행 됨)
+resolve , reject = JS(시스템)가 만들어서 executor에 건네주는 함수 . executor 함수는 매개변수로 받기만 함
+(callback(user)로 user 받던거랑 같음!) → function resolve(){} 안써도됨.
+
+
+5) resolve / reject = 상자에 담기 + 상태 바꾸기
+resolve(값) 3가지 : ① 상태→fulfilled ② 값 담기 ③ 등록된 .then 콜백을 마이크로큐로
+reject(값) : ① 상태→rejected ② 에러 담기 ③ .catch 콜백을 큐로
+담는 값 = 아무 자료형 OK (보통 객체·문자열 / reject는 에러). 함수도 가능하나 보통 안 넣음
+
+
+6) 꺼내기: .then / .catch / .finally
+.then((성공값) => 할일) = 성공하면 → 성공값 꺼내 할 일
+.catch((에러) => 할일) = 실패하면 → 에러 꺼내 할 일
+.finally(() => 할일) = 성공/실패 상관없이 항상 실행
+매개변수 이름 자유 (단 , 받은 이름 그대로 몸통에서 사용)
+📌 "then/catch 가 promise 반환해서 체이닝..."← 깊은 반환 메커니즘은 아직 몰라도 OK(고급). 지금은
+"then"이 또 Promise를 돌려줘서 .then().then() 이어 붙일 수 있다" 만!
+
+⚠️ .then vs resolve — 헷갈림 주의! (둘이 다른 일을 함)
+ · .then(콜백)  = 콜백을 "상자 안에 등록"만 함 (상태 변경 ❌)
+ · resolve(값) = 상태→fulfilled + 값 담기 + 등록된 콜백을 마이크로큐로 (상태 변경 ✅)
+ → .then = 등록(대기 걸어두기) / resolve = 실행 발동 스위치. 다른 함수·다른 일·다른 시점!
+ → "등록된 .then 콜백" = 상자(Promise 객체) "안"에 저장해둔 그 콜백 (콜스택·큐 아님!)
+
+
+7) return = 상자를 밖으로
+fetchUser 는 상자를 return 해야 → 부른 쪽이 받아서 .then 붙임 (return 없으면 .then() 못 함)
+📌순서: 상자를 먼저 "완성"해야 return 가능. 완성 = executor 실행 = setTimeout을 web API에 맡기기.
+→ setTimeout 맡기기 (먼저) → 상자 완성 → return (나중). (1초 안 기다리고 pending 상자 바로 돌려줌)
+
+
+8) 실행 흐름 (콜스택 / Web API / 큐 / 이벤트루프)
+① fetchUser() → new Promise 즉시 → executor 실행 → setTimeout을 web API에 맡김
+② 상자(pending) return → fetchUser pop
+③ .then 콜백은 "상자 안"에 등록·대기 (큐 아님!)
+④ (1초 뒤) 타이머 끝 → setTimeout 콜백  →  Task Queue(매크로)  →  콜스택 
+⑤ resolve(user)  →  fulfilled + 상자 안 .then 콜백을 Microtask Queue(마이크로)로
+⑥ 이벤트루프: 콜스택 비면  →  .then 콜백 콜스택으로  →  출력
+
+핵심:.then 콜백 여정 = 상자 안(등록·대기) → [resolve] → 마이크로큐 → [이벤트루프] → 콜스택,/setTimeout = 매크로큐, Promise = 마이크로큐(우선)
+
+9) 저장 위치 = Heap
+Promise 상자(객체)·콜백(함수) = Heap 저장. (Call Stack = 실행만 / Heap = 객체·함수 보관=2일차 냉장고 🧊)
+상자가 Heap에 살아있으니 resolve될 때까지 콜백도 유지 (참조 있어 GC 안 됨)
+
+
+### ❓ 강의에서 못 알아들었던 문장들 (풀이와 함께)
+1. "상태 정보를 알려주겠다는 약속" → 결과 + 상태를 담아 알려주는 객체
+2. "로직이 완료되지 않음" → "로직" = 그 비동기 작업(코드)
+3. "생성자 함수" → 객체 찍어내는 틀 (new Date 같은)
+4. "executor를 전달받음" → new Promise(여기)에 내가 넣는 함수 resolve/reject는 JS가 그 안에 건네줌
+5. "then/catch"가 promise 반환해서 체이닝" 지금은 → "이어붙일 수 있다"로만 (깊은 건 나중)
+6. <fulfilled> → 진짜 키 아니라 내부 상태 표기 (값은 .then으로)
+7. 상자 vs 내용물 / return 순서 / 등록·대기 위치 → 3·7·8 참고
+
+
+### 💡 한 줄 정리
+Promise = 비동기 결과를 담는 상자 (객체). new Promise + resolve/reject 로 만들어 담고,
+.then/.catch로 꺼낸다. 콜백지옥을 체인으로 편다. 상자는 Heap, 흐름은 콜스택↔Web API↔마이크로큐↔이벤트루프.
+
+### 🔗 연결
+세션5 참조(상자=객체=Heap, 주소) / 세션6 콜백 / 세션10 클로저(안에서 바깥 변수 봄) / Day1~4(비동기·콜스택·이벤트루프)
+
+### ★ 로직 쓰기 방법: "값 출처 묻기"
+값마다 "어디서 와?" → 바깥에서 옴=매개변수 / 안에서 만듦=const / 상위에 있음=클로저. 시스템 콜백 매개변수는 시스템이 채움. 코드 전에 "출처→목적지" 화살표 먼저!
+
+
+
 ## ▶️ 다음 강의
 runtime 편 = [브라우저 API] + 대기줄(Task Queue) + 이벤트 루프 (Day1에 맛본 것)
 그 다음: Promise / .then / .catch / async·await
