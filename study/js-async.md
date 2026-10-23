@@ -341,6 +341,158 @@ Promise = 비동기 결과를 담는 상자 (객체). new Promise + resolve/reje
 
 
 
+## 📖 6강 — async / await
+
+0) 왜 async/await? (.then 콜백 없이 위→아래로)
+콜백·.then으로 쓰면 콜백 안으로 들어가야 해서 번거롭다. async/await는 .then 없이 동기 코드처럼 위 → 아래로 읽히게 해준다.
+새 개념이 아니라 Promise를 편하게 입는 옷 
+
+
+1) async = "비동기 함수" 도장 (항상 Promise 반환 / 안에서 await 가능)
+함수 앞에 async를 붙이면 그 함수는 무조건 Promise(상자)를 반환한다. async를 붙여야 그 안에서 await를 쓸 수 있다.
+
+async function registerUser(){...}  // 이 함수는 Promise를 돌려줌
+
+2) await = 상자 기다렸다 값 꺼내기 📤 (상자 벗기개 / resolve·reject 될 때까지 기다림)
+await 상자 = 그 Promise가 결과를 낼 때가지(resolve/reject) 기다렸다가 값을 꺼내 준다. (시간을 기다리는게 아니라 "상태가 정해질 때까지")
+
+const user = await setUser();     // setUser 상자가 성공하면 그 값을 꺼내 user에 담음
+
+3) ⭐ resolve=담기 📥 / .then·await=꺼내기 📤 (방향 — 거꾸로 보지 말기!)
+resolve(값) = 상자에 값 담기(넣기)
+.then/await = 상자에 값 꺼내기
+.then 은 두가지 : ① 콜백 등록 + ② 성공 시 값 꺼내 콜백에 줌. await 는 그 "꺼내기"를 변수로 바로 받는 것.
+
+### ⭐ 담기 📥 vs 꺼내기 📤 (핵심 표)
+
+|              | 담기 📥 (상자에 넣기)   | 꺼내기 📤 (상자에서 빼기) |
+|--------------|------------------------|--------------------------|
+| new Promise  | resolve(값) — 직접      | .then / await            |
+| async 함수   | return 값 — async가 자동 | .then / await            |
+
+- 담기 = resolve(직접) 또는 return(async 자동)
+- 꺼내기 = .then 또는 await
+- ⚠️ .then은 담기 아니라 "꺼내기"!
+- await는 async 함수 "안"에서만 / .then은 어디서든
+- getRate: resolve로 담고 → await로 꺼냄 / toKRW: return으로 담고(async자동) → .then으로 꺼냄
+
+
+
+4) await는 async 함수 "전체"를 일시정지 ⏸️ (한 줄만 X / resolve되면 재개)
+await를 만나면 그 한 줄만이 아니라 async 함수 전체가 멈춘다. 콜스택에서 내려가 보관됐다가, 상자가 resolve되면 다시 올라와
+재개.(어디 보관되는지 내부 구현을 몰라도 OK)
+
+
+5) "await 뒤 코드" = 재개 시 이어서 할 것 (담기 + 그 다음 = .then 콜백과 같은 역할)
+const user = await setUser();  // ① await이 값 꺼내 내놓기까지
+                               // ② 그 값을 user에 "담기" (await 직후)
+console.log(user);             // ③ 그 다음
+
+await가 값을 준 "다음"에 이어서 하는 것(②담기 + ③)이 "await 뒤 코드". JS가 이걸 .then 콜백처럼 처리.
+
+6) console.log vs return (화면 찍기 📺 vs 값 돌려주기 📤 — 아무 데도 안 뜸)
+console.log(x) = x를 검사기 콘솔에 찍기📺
+return x = x를 함수 밖으로 돌려주기 (화면에 안 뜸! 아무 데도 안 보임)
+async함수는 return 없이도 자동으로 Promise 반환 (return한 값이 그 상자에 담김, 없으면 undefined)
+
+async function a() { return 5; }   // a()가 돌려준 Promise에 5가 담김
+a().then((r) => console.log(r));   // 5 (화면에 보려면 console.log 필요)
+
+
+7) 레벨 2개 (함수 "안" await 결과=값 / 함수 "자체"=Promise 상자)
+함수 안: const user = await setUser() → user = 값
+함수 자체 : registerUser() → Promise(상자) (async라서)
+
+
+8) await는 async 함수 "안"에서만 / .then은 어디서든 (밖에서 꺼낼 땐 .then)
+await는 async라는 "방 안"에서만 쓸 수 있다.함수 밖(전역)에서 결과를 꺼낼 땐 .then 사용 (.then은 사라진 게 아니라 공존!)
+
+
+9) 매개변수 출처 (밖에서 받는 값이면 → 매개변수 자리 만들기 / 안에서 생기면 불필요)
+"값 출처 묻기": 밖에서 받아야 하면 매개변수 만들기 / 안에서 생기거나 박으면 불필요.
+
+async function toKRW(dollar) {        // dollar는 밖에서 받음 → 매개변수 
+    const rate = await getRate();
+    return rate * dollar;
+}
+toKRW(10).then((r) => console.log(r));
+
+
+### ❓ 내가 헷갈렸던 것 (6강)
+1. resolve가 값 꺼내는 줄 알았다 → resolve=담기 / 꺼내기=then·await
+2. "await 뒤 코드"가 setUser()인 줄 → 아님. 담기+그 다음(재개 코드)
+3. async 함수가 "값"을 돌려주는 줄 → 함수 자체는 Promise(상자), 값은 함수 "안"
+4. console.log랑 return이 어디 찍히나 → log=검사기콘솔 / return=화면아님(돌려주기)
+5. id가 getUserName에서 오는 줄 → 밖에서 옴(매개변수로 받아야). getUserName은 id를 "받는" 쪽
+
+### 💡 한 줄 정리 (6강)
+async/await = Promise를 동기 코드처럼 위→아래로 쓰는 옷. async = 상자 반환 도장, await = 함수 전체 멈추고 값 꺼내기.
+resolve = 담기 / await = 꺼내기. 밖에서는 .then으로 꺼낸다.
+
+
+### 🔗 연결 (6강)
+5강 Promise(상자·resolve·then) 위에 올라감 / 세션3 매개변수·인자 / Day4 콜백. 콜백 = Promise = async/await 다 "같은 일, 표현만 쉬워짐".
+
+
+
+## 📖 7강 — try / catch (에러 처리)
+
+0) 왜 try/catch? (async/await에선 .catch 대신 이걸로)
+Promise는 실패를 .catch로 받았지만, async/await에선 .then을 안 쓰니 실패를 try/catch 로 받는다.
+
+.then ↔ try (성공 흐름)    /   .catch  ↔  catch (실패 잡기)
+
+1) 모양
+try{
+   // 성공하길 바라는 코드
+} catch (error) {
+  // 실패하면 여기로
+}
+비유: try = 요리 시도 / catch = 불나면 소화기 🧯 (안 터지면 catch 는 지나감)
+
+2) reject → await가 에러 "던짐(throw)" 💥 →  try 아래 건너뛰고 catch로 점프
+   reject(...)로 상자가 rejected되면, 그 상자를 await가 만났을 때 값 대신 에러를 던진다(throw). 
+   try 아래 코드는 건너뛰고 곧장 catch 로 점프.
+
+   try{
+     const user = await roleCheck(someUser);   // 💥 reject면 여기서 던짐
+     console.log(user);    
+   } catch (error) {
+     console.log(error.message)           // 여기로 점프
+   }
+
+3) new Error("메세지") (에러 객체 생성 / catch에서 error.message로 꺼냄)
+   new Error("권한 없음!") = 에러 정보를 담은 객체 생성. (메세지 + 어디서 터졌는지 정보) → catch에서 error.message로 메세지만 꺼냄.
+
+4) try로 뭘 감싸나 (실패 가능한 await 줄들 / 여러 개도 한 catch로 )
+   "실패할 수 있는 비동기 작업(await 줄들)"을 감싼다. try안에 await 여러 개 → 아무 데서 실패해도 한 catch로 다 잡힘.
+
+   try{
+     const user = await setUser();
+     const checked = await roleCheck(user);      // 둘 중 어디서 실패해도
+     printUser(checked)
+   } catch (error) {
+     console.log(error);                         // 여기 한 곳에서 잡음
+   }
+
+5) 두 종류 오류 (제어된 오류 reject·throw / 엔진 오류 - 둘 다 catch가 잡음 )
+   제어된 오류 = 우리가 일부러 reject / throw 한 것 (예상된 실패: "유저 없음")
+   엔진 오류 = 진짜 버그 (undefined.name 접근 , 오타 등 JS가 터뜨림)
+   → try / catch 는 둘 다 잡는다 (안전망).
+
+### ❓ 내가 헷갈렸던 것 (7강)
+1. await이 throw 하는 거지? → 응, await가 rejected 상자 만나면 에러 던짐 → catch가 잡음
+2. new Error가 뭐야? → 에러 정보 담은 객체 생성 (new로 찍어냄, Promise의 new랑 같은 결)
+
+
+### 💡 한 줄 정리 (7강)
+try/catch = async/await의 에러 처리(=.catch 대신).reject된 상자를 await가 만나면 에러를 throw → catch가 잡는다. try엔 실패 가능한 await 줄들을 감싼다. 
+
+
+### 🔗 연결 (7강)
+5강 Promise의 reject/.catch → async/await 버전이 try/catch. new Error = 세션(객체 생성 new).
+
+
 ## ▶️ 다음 강의
 runtime 편 = [브라우저 API] + 대기줄(Task Queue) + 이벤트 루프 (Day1에 맛본 것)
 그 다음: Promise / .then / .catch / async·await
