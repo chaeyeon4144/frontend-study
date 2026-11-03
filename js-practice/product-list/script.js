@@ -34,3 +34,17 @@ async function getProducts() {
   }
 }
 getProducts();
+
+// 상품 상세 정보 확인하기
+async function getProductDetail(id) {
+  try {
+    const response = await fetch(
+      `https://dev.wenivops.co.kr/services/fastapi-crud/1/product/${id}`,
+    );
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+getProductDetail(1);
