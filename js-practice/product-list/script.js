@@ -22,7 +22,7 @@ async function getProducts() {
 
     const cards = data.map(
       (product) => `
-    <div class="card">
+    <div class="card" onclick="getProductDetail(${product.id})">
     <img src="${product.thumbnailImg}" width="150"/>
     <h2>${product.productName}</h2>
     <p>${product.price.toLocaleString()}원</p>
@@ -43,8 +43,26 @@ async function getProductDetail(id) {
     );
     const data = await response.json();
     console.log(data);
+
+    // 상품 상세를 표시할 영역
+    const detail = document.querySelector("#detail");
+    detail.innerHTML = `
+    <div class="detail-card">
+    <img src="${data.thumbnailImg}" width="510"/>
+    <div class="detail-info">
+    <div class="detail-title">
+    <h2>상품명: ${data.productName}</h2>
+    <p>가격: ${data.price.toLocaleString()}원</p>
+    </div>
+    <ul class="detail-description">
+    <li>업데이트 날짜: ${data.pubDate}</li>
+    <li>재고 수량: ${data.stockCount}</li>
+    </ul>
+    </div>
+    </div>
+    `;
   } catch (error) {
     console.error(error);
   }
 }
-getProductDetail(1);
+// getProductDetail(1);
